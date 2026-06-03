@@ -1,0 +1,87 @@
+/* ============================================================
+   规则与留痕 — 重构为「治理监督台」
+   核心：AI 自治运行、全程留痕；人只在两类时刻介入 ——
+   ① 系统升级到决策点（授权 / 越级 / 规则确认）
+   ② 主动抽查与追溯留痕。
+   明确人机分工 + 待我处理队列 + 可溯源规则。
+   ============================================================ */
+
+/* ---------- 人机分工 banner ---------- */
+.ru-role { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border-200); border-radius: var(--r-lg); overflow: hidden; margin-bottom: 18px; }
+.ru-role-col { padding: 16px 20px; display: flex; gap: 13px; }
+.ru-role-col.you { background: var(--blue-tint); }
+.ru-role-col.ai { background: var(--ai-soft); border-left: 1px solid var(--border-200); }
+.ru-role-ico { width: 38px; height: 38px; border-radius: var(--r-md); background: #fff; display: flex; align-items: center; justify-content: center; flex: none; }
+.ru-role-col.you .ru-role-ico { border: 1px solid var(--blue-border); }
+.ru-role-col.ai .ru-role-ico { border: 1px solid #BEE6F8; }
+.ru-role-main { min-width: 0; }
+.ru-role-k { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+.ru-role-col.you .ru-role-k { color: var(--blue-primary); }
+.ru-role-col.ai .ru-role-k { color: var(--ai); }
+.ru-role-t { font-size: 13.5px; font-weight: 600; color: var(--text-900); margin-top: 6px; }
+.ru-role-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ru-role-list li { display: flex; gap: 8px; font-size: 12px; line-height: 18px; color: var(--text-700); }
+.ru-role-list li .ic { flex: none; margin-top: 1px; }
+
+/* ---------- 待我处理 · 决策点队列 ---------- */
+.ru-todo-wrap { background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-lg); overflow: hidden; margin-bottom: 18px; }
+.ru-todo-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--divider); }
+.ru-todo-head .t { font-size: 14px; font-weight: 600; color: var(--text-900); display: flex; align-items: center; gap: 8px; }
+.ru-todo-n { font-family: var(--font-mono); font-weight: 700; color: var(--warning); background: var(--warning-bg); border-radius: var(--r-full); padding: 1px 9px; font-size: 12px; }
+.ru-todo-head .s { margin-left: auto; font-size: 12px; color: var(--text-400); }
+
+.ru-todo-item { display: flex; gap: 14px; padding: 16px 18px; border-bottom: 1px solid var(--divider); align-items: flex-start; }
+.ru-todo-item:last-child { border-bottom: none; }
+.ru-todo-ico { width: 40px; height: 40px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; flex: none; }
+.ru-todo-main { flex: 1; min-width: 0; }
+.ru-todo-toprow { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.ru-todo-kind { font-size: 10.5px; font-weight: 600; padding: 2px 9px; border-radius: var(--r-full); white-space: nowrap; }
+.ru-todo-t { font-size: 14px; font-weight: 600; color: var(--text-900); line-height: 20px; text-wrap: pretty; }
+.ru-todo-why { font-size: 12.5px; line-height: 19px; color: var(--text-500); margin-top: 8px; text-wrap: pretty; }
+.ru-todo-why b { color: var(--text-700); font-weight: 600; }
+.ru-todo-meta { display: flex; align-items: center; gap: 10px; margin-top: 9px; font-size: 11px; color: var(--text-400); flex-wrap: wrap; }
+.ru-todo-meta .mono { font-family: var(--font-mono); }
+.ru-todo-meta .proj { color: var(--blue-primary); font-family: var(--font-mono); }
+.ru-todo-acts { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+.ru-todo-empty { padding: 30px; display: flex; align-items: center; gap: 14px; justify-content: center; }
+.ru-todo-empty-ico { width: 44px; height: 44px; border-radius: var(--r-md); background: var(--success-bg); display: flex; align-items: center; justify-content: center; flex: none; }
+.ru-todo-empty-t { font-size: 14px; font-weight: 600; color: var(--text-900); }
+.ru-todo-empty-s { font-size: 12.5px; color: var(--text-500); margin-top: 3px; }
+
+/* 跨模块指引 · 与介入工作台区分 */
+.ru-xref { display: flex; align-items: center; gap: 9px; width: 100%; padding: 12px 18px; border: none; border-top: 1px dashed var(--border-300); background: var(--canvas); cursor: pointer; text-align: left; font-size: 12px; color: var(--text-500); transition: background var(--dur-fast); }
+.ru-xref:hover { background: var(--blue-tint); }
+.ru-xref b { color: var(--text-700); font-weight: 600; }
+.ru-xref > span { flex: 1; }
+
+/* ---------- 规则列表 · 可点开溯源 ---------- */
+.ru-rule-btn { display: flex; gap: 12px; padding: 14px 18px; border: none; border-bottom: 1px solid var(--divider); background: transparent; width: 100%; text-align: left; cursor: pointer; transition: background var(--dur-fast); align-items: flex-start; }
+.ru-rule-btn:last-child { border-bottom: none; }
+.ru-rule-btn:hover { background: var(--canvas); }
+.ru-rule-btn[data-pending="true"] { background: var(--warning-bg); }
+.ru-rule-btn[data-pending="true"]:hover { background: #FBEBD2; }
+.ru-rule-cta { margin-left: auto; flex: none; align-self: center; color: var(--text-400); }
+.ru-rule-foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.ru-rule-src { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: var(--r-full); }
+.ru-rule-src.human { color: var(--text-500); background: var(--neutral-bg); }
+.ru-rule-src.decision { color: var(--blue-primary); background: var(--blue-tint); }
+.ru-rule-src.auto { color: var(--ai); background: var(--ai-soft); }
+.ru-rule-status { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 600; }
+.ru-rule-status.ratified { color: var(--success); }
+.ru-rule-status.pending { color: var(--warning); }
+
+/* 规则抽屉 · 来源块 */
+.ru-srcbox { display: flex; gap: 12px; align-items: flex-start; padding: 13px 15px; border: 1px solid var(--border-200); border-radius: var(--r-md); background: var(--canvas); }
+.ru-srcbox.decision { background: var(--blue-tint); border-color: var(--blue-border); }
+.ru-srcbox.auto { background: var(--ai-soft); border-color: #BEE6F8; }
+.ru-srcbox-ico { width: 32px; height: 32px; border-radius: var(--r-sm); background: #fff; display: flex; align-items: center; justify-content: center; flex: none; }
+.ru-srcbox-main { flex: 1; min-width: 0; }
+.ru-srcbox-t { font-size: 13px; font-weight: 600; color: var(--text-900); }
+.ru-srcbox-s { font-size: 12px; line-height: 18px; color: var(--text-500); margin-top: 3px; }
+.ru-srcbox-link { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; color: var(--blue-primary); margin-top: 8px; cursor: pointer; background: none; border: none; padding: 0; }
+
+@media (max-width: 760px) {
+  .ru-role { grid-template-columns: 1fr; }
+  .ru-role-col.ai { border-left: none; border-top: 1px solid var(--border-200); }
+}

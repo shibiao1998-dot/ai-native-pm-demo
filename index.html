@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 原生项目管理平台 · 批 0</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="assets/tokens.css" />
+  <link rel="stylesheet" href="assets/components.css" />
+  <link rel="stylesheet" href="assets/doc_kit.css" />
+  <link rel="stylesheet" href="assets/shell.css" />
+  <link rel="stylesheet" href="assets/pages.css" />
+  <link rel="stylesheet" href="assets/pages_b1.css" />
+  <link rel="stylesheet" href="assets/pages_b2.css" />
+  <link rel="stylesheet" href="assets/pages_b3.css" />
+  <link rel="stylesheet" href="assets/pages_b4.css" />
+  <link rel="stylesheet" href="assets/pages_b5.css" />
+  <link rel="stylesheet" href="assets/pages_b6.css" />
+  <link rel="stylesheet" href="assets/pages_b7.css" />
+  <link rel="stylesheet" href="assets/pages_b8.css" />
+  <link rel="stylesheet" href="assets/pages_kb.css" />
+  <link rel="stylesheet" href="assets/pages_rules.css" />
+  <link rel="stylesheet" href="assets/pages_intervene.css" />
+  <link rel="stylesheet" href="assets/pages_perm.css" />
+  <link rel="stylesheet" href="assets/pages_b8_skill.css" />
+  <link rel="stylesheet" href="assets/pages_b9.css" />
+  <link rel="stylesheet" href="assets/designsystem.css" />
+  <link rel="stylesheet" href="assets/pages_portal.css" />
+  <link rel="stylesheet" href="assets/pages_home.css" />
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React + Babel（固定版本 + 完整性校验） -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- Lucide 图标（固定版本） -->
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.js"></script>
+
+  <!-- 组件与页面 -->
+  <script type="text/babel" data-presets="react" src="assets/components.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/doc_kit.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/shell.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_intervene.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_projects.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b2_strategy.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b2_intent.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b2_charter.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_home_data.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_home_modules.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b3_home.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b3_intervene.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b3_tree.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b4.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b4_kapian.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b5_board.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b5_detail.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b5_dispatch.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b6_progress.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b6_review.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b6_accept.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b_risk.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b7_force.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b7_knowledge.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b7_review.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b8_staff_data.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b8_skill.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b8_staff.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b8_align.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b8_rules.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b9_costboard.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b9_projcost.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_b9_perm.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/designsystem.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/pages_portal.jsx"></script>
+  <script type="text/babel" data-presets="react" src="assets/app.jsx"></script>
+</body>
+</html>

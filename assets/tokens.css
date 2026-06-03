@@ -1,0 +1,122 @@
+/* ============================================================
+   批 0 · 设计系统 Tokens
+   AI 原生项目管理平台 — 商务 / 明亮 / 简洁 / 蓝白
+   ============================================================ */
+
+:root {
+  /* ---- 主色 · 商务蓝 ---- */
+  --blue-primary: #2563EB;
+  --blue-hover:   #1D4ED8;
+  --blue-deep:    #1E3A8A;
+  --blue-tint:    #EFF5FF;
+  --blue-soft:    #DBE7FE;
+  --blue-border:  #BFD4FE;
+
+  /* ---- 中性灰阶 ---- */
+  --white:    #FFFFFF;
+  --canvas:   #F7F9FC;
+  --divider:  #F1F4F9;
+  --border-200: #E4E8EF;
+  --border-300: #D2D8E2;
+  --text-400: #9AA4B2;
+  --text-500: #647084;
+  --text-700: #3A4355;
+  --text-900: #1A2233;
+
+  /* ---- 语义色 ---- */
+  --success: #0E9F6E; --success-bg: #E3F6EF;
+  --warning: #E08A1E; --warning-bg: #FCF1DF;
+  --danger:  #E5484D; --danger-bg:  #FCE9E9;
+  --info:    #2563EB; --info-bg:    #EFF5FF;
+  --neutral: #647084; --neutral-bg: #F1F4F9;
+  --ai:      #0EA5E9; --ai-soft: #E0F3FC;
+
+  /* ---- 字体 ---- */
+  --font-sans: "Inter","PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",system-ui,sans-serif;
+  --font-mono: "IBM Plex Mono","Roboto Mono","JetBrains Mono",ui-monospace,monospace;
+
+  /* ---- 圆角 ---- */
+  --r-xs: 4px; --r-sm: 6px; --r-md: 10px; --r-lg: 12px; --r-full: 999px;
+
+  /* ---- 阴影 ---- */
+  --shadow-xs: 0 1px 2px rgba(16,24,40,.04);
+  --shadow-sm: 0 2px 8px rgba(16,24,40,.06);
+  --shadow-md: 0 8px 24px rgba(16,24,40,.08);
+  --shadow-lg: 0 16px 48px rgba(16,24,40,.12);
+  --ring-focus: 0 0 0 3px rgba(37,99,235,.16);
+
+  /* ---- 动效 ---- */
+  --ease-out: cubic-bezier(0.22,1,0.36,1);
+  --ease-inout: cubic-bezier(0.4,0,0.2,1);
+  --dur-fast: 120ms; --dur-base: 200ms; --dur-slow: 240ms;
+
+  /* ---- 尺寸 ---- */
+  --topbar-h: 56px;
+  --nav-w: 240px;
+  --nav-w-collapsed: 64px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  background: var(--canvas);
+  color: var(--text-700);
+  font-size: 14px;
+  line-height: 22px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---- 字阶工具类 ---- */
+.t-display { font-size: 32px; line-height: 40px; font-weight: 600; letter-spacing: -.01em; color: var(--text-900); }
+.t-h1 { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -.01em; color: var(--text-900); }
+.t-h2 { font-size: 20px; line-height: 28px; font-weight: 600; letter-spacing: -.01em; color: var(--text-900); }
+.t-h3 { font-size: 16px; line-height: 24px; font-weight: 600; color: var(--text-900); }
+.t-body-l { font-size: 15px; line-height: 24px; font-weight: 400; }
+.t-body { font-size: 14px; line-height: 22px; font-weight: 400; }
+.t-caption { font-size: 13px; line-height: 20px; font-weight: 400; color: var(--text-500); }
+.t-micro { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--text-500); }
+.t-label-caps { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-400); }
+
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.metric-xl { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 30px; line-height: 36px; font-weight: 600; color: var(--text-900); letter-spacing: -.01em; }
+.metric { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 20px; line-height: 28px; font-weight: 600; color: var(--text-900); }
+
+/* ---- 滚动条 ---- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border-300); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-400); background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ---- 焦点环 ---- */
+:focus-visible { outline: none; box-shadow: var(--ring-focus); border-radius: var(--r-sm); }
+
+/* ---- 骨架屏 shimmer ---- */
+@keyframes shimmer { 0% { background-position: -460px 0; } 100% { background-position: 460px 0; } }
+.skeleton {
+  background: var(--divider);
+  background-image: linear-gradient(90deg, var(--divider) 0px, var(--blue-soft) 120px, var(--divider) 240px);
+  background-size: 460px 100%;
+  background-repeat: no-repeat;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: var(--r-sm);
+}
+
+/* ---- AI 呼吸 ---- */
+@keyframes ai-breathe {
+  0%,100% { box-shadow: 0 0 0 0 rgba(14,165,233,.0); opacity: 1; }
+  50% { box-shadow: 0 0 0 4px rgba(14,165,233,.18); opacity: .85; }
+}
+@keyframes ai-ring-spin { to { transform: rotate(360deg); } }
+
+/* ---- 列表入场 stagger ---- */
+@keyframes enter-up { from { transform: translateY(8px); } to { transform: translateY(0); } }
+
+/* ---- icon 默认 ---- */
+.lucide, [data-lucide] { stroke-width: 1.5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}

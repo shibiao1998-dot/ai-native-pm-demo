@@ -1,0 +1,88 @@
+/* ============================================================
+   文档套件 doc_kit — 全平台「列表 → 详情大表」共用样式
+   复用 pages_b2.css 中已有的 .cd-* 文档样式；此处补充 .dk-* 新原语
+   ============================================================ */
+
+/* 通用列表行（统一各模块「列表 → 进入详情」入口） */
+.dk-rows { display: flex; flex-direction: column; gap: 10px; }
+.dk-row { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-lg); cursor: pointer; text-align: left; transition: box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast); }
+.dk-row:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); border-color: var(--blue-border); }
+.dk-row-ico { width: 38px; height: 38px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; flex: none; background: var(--blue-tint); }
+.dk-row-main { flex: 1; min-width: 0; }
+.dk-row-name { font-size: 15px; font-weight: 600; color: var(--text-900); display: flex; align-items: center; gap: 8px; }
+.dk-row-meta { font-size: 12px; color: var(--text-500); margin-top: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dk-row-aside { display: flex; align-items: center; gap: 12px; flex: none; }
+.dk-row-stat { font-size: 12.5px; color: var(--text-500); white-space: nowrap; }
+.dk-row-stat b { color: var(--text-900); font-size: 14px; margin-left: 2px; }
+.dk-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 4px 11px; border-radius: var(--r-full); white-space: nowrap; }
+
+/* 指标统计磁贴行（达成 / 收益 / 绩效概览） */
+.dk-stats { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 12px; }
+.dk-stat { padding: 13px 15px; border: 1px solid var(--border-200); border-radius: var(--r-md); background: var(--canvas); }
+.dk-stat-v { font-size: 22px; font-weight: 600; color: var(--text-900); font-family: var(--font-mono); letter-spacing: -.01em; }
+.dk-stat-v small { font-size: 13px; font-weight: 500; color: var(--text-500); margin-left: 2px; font-family: var(--font-sans); }
+.dk-stat-k { font-size: 12px; color: var(--text-500); margin-top: 4px; }
+.dk-stat-delta { font-size: 11.5px; font-weight: 600; margin-top: 5px; display: inline-flex; align-items: center; gap: 3px; }
+
+/* 横条进度（能力 / 绩效 / 命中率） */
+.dk-bars { display: flex; flex-direction: column; gap: 11px; }
+.dk-bar-row { display: grid; grid-template-columns: 132px 1fr 52px; gap: 12px; align-items: center; }
+.dk-bar-k { font-size: 12.5px; color: var(--text-700); }
+.dk-bar-track { height: 7px; border-radius: 999px; background: var(--border-200); overflow: hidden; }
+.dk-bar-fill { height: 100%; border-radius: 999px; background: var(--blue-primary); }
+.dk-bar-v { font-size: 12px; font-weight: 600; color: var(--text-900); font-family: var(--font-mono); text-align: right; }
+
+/* 证据 / 附件 / 引用行 */
+.dk-ev { display: flex; flex-direction: column; gap: 8px; }
+.dk-ev-row { display: flex; align-items: center; gap: 11px; padding: 10px 13px; border: 1px solid var(--border-200); border-radius: var(--r-md); background: #fff; }
+.dk-ev-ico { width: 30px; height: 30px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; flex: none; background: var(--canvas); }
+.dk-ev-main { flex: 1; min-width: 0; }
+.dk-ev-name { font-size: 13px; font-weight: 500; color: var(--text-900); }
+.dk-ev-meta { font-size: 11.5px; color: var(--text-400); margin-top: 2px; }
+.dk-ev-tag { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: var(--r-full); flex: none; }
+
+/* 决策链 / 时间线（带步骤编号 + 角色 + 依据） */
+.dk-chain { display: flex; flex-direction: column; }
+.dk-chain-row { display: flex; gap: 13px; padding-bottom: 16px; position: relative; }
+.dk-chain-row:last-child { padding-bottom: 0; }
+.dk-chain-row:not(:last-child)::before { content: ''; position: absolute; left: 13px; top: 28px; bottom: 0; width: 1.5px; background: var(--border-200); }
+.dk-chain-no { width: 27px; height: 27px; border-radius: 999px; background: var(--blue-tint); color: var(--blue-primary); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; z-index: 1; }
+.dk-chain-no.is-ai { background: var(--ai-soft); color: var(--ai); }
+.dk-chain-main { flex: 1; min-width: 0; padding-top: 2px; }
+.dk-chain-top { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.dk-chain-act { font-size: 13px; font-weight: 600; color: var(--text-900); }
+.dk-chain-actor { font-size: 11.5px; color: var(--text-400); display: inline-flex; align-items: center; gap: 4px; }
+.dk-chain-when { font-size: 11.5px; color: var(--text-400); font-family: var(--font-mono); margin-left: auto; }
+.dk-chain-desc { font-size: 12.5px; line-height: 1.65; color: var(--text-700); margin-top: 4px; }
+.dk-chain-basis { display: inline-flex; align-items: center; gap: 5px; margin-top: 7px; padding: 4px 9px; border-radius: var(--r-sm); background: var(--canvas); font-size: 11.5px; color: var(--text-500); }
+
+/* 引文块（价值观条款 / 规则原文） */
+.dk-quote { padding: 13px 15px; border-left: 3px solid var(--blue-primary); background: var(--blue-tint); border-radius: 0 var(--r-md) var(--r-md) 0; }
+.dk-quote-txt { font-size: 13.5px; line-height: 1.7; color: var(--text-900); }
+.dk-quote-by { font-size: 11.5px; color: var(--text-500); margin-top: 7px; display: flex; align-items: center; gap: 5px; }
+
+/* 标签行 */
+.dk-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.dk-tag { font-size: 12px; padding: 4px 11px; border-radius: var(--r-full); background: var(--canvas); border: 1px solid var(--border-200); color: var(--text-700); }
+
+/* 裁决 / 结论横幅（强调块） */
+.dk-verdict { display: flex; align-items: flex-start; gap: 11px; padding: 14px 16px; border-radius: var(--r-md); border: 1px solid var(--border-200); }
+.dk-verdict.is-pass { background: var(--success-bg); border-color: #BDE9D6; }
+.dk-verdict.is-warn { background: var(--warning-bg); border-color: #F2DEA8; }
+.dk-verdict.is-stop { background: var(--danger-bg); border-color: #F2C5C0; }
+.dk-verdict-ico { flex: none; margin-top: 1px; }
+.dk-verdict-main { flex: 1; min-width: 0; }
+.dk-verdict-title { font-size: 14px; font-weight: 600; color: var(--text-900); }
+.dk-verdict-desc { font-size: 12.5px; line-height: 1.65; color: var(--text-700); margin-top: 4px; }
+
+/* 调用 / 引用日志表 */
+.dk-log { display: flex; flex-direction: column; gap: 1px; background: var(--border-200); border: 1px solid var(--border-200); border-radius: var(--r-md); overflow: hidden; }
+.dk-log-row { display: flex; align-items: center; gap: 11px; padding: 9px 13px; background: #fff; font-size: 12.5px; }
+.dk-log-when { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-400); width: 96px; flex: none; }
+.dk-log-main { flex: 1; min-width: 0; color: var(--text-700); }
+.dk-log-tail { font-family: var(--font-mono); font-size: 12px; color: var(--text-900); font-weight: 600; flex: none; }
+
+@media (max-width: 640px) {
+  .dk-stats { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: 1fr 1fr; }
+  .dk-bar-row { grid-template-columns: 110px 1fr 44px; }
+}

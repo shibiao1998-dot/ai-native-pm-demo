@@ -1,0 +1,134 @@
+/* ============================================================
+   权限系统重构 — 四角色 + 工作台准入 + 可勾选的查看 / 编辑权限
+   管理层 / 项目集负责人 / 项目负责人 / 查看者
+   严格区分「编辑权限（增删改）」与「查看权限（仅浏览）」。
+   ============================================================ */
+
+/* 四角色对照（覆盖原 3 列） */
+.pm-compare { grid-template-columns: repeat(4, 1fr); }
+.pm-persona-access { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; padding: 3px 9px; border-radius: var(--r-full); margin-top: 10px; }
+.pm-persona-access.can { color: var(--success); background: var(--success-bg); }
+.pm-persona-access.cannot { color: var(--text-500); background: var(--neutral-bg); }
+
+/* 谁能进入「项目管理工作台」 */
+.pm-access-row { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-lg); margin-bottom: 18px; flex-wrap: wrap; }
+.pm-access-q { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; color: var(--text-900); }
+.pm-access-q .ic { flex: none; }
+.pm-access-list { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.pm-access-i { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: var(--r-full); border: 1px solid; }
+.pm-access-i.yes { color: var(--success); background: var(--success-bg); border-color: #BFE5D5; }
+.pm-access-i.no { color: var(--text-500); background: var(--canvas); border-color: var(--border-200); }
+
+/* 精细化权限控制 · 主开关 */
+.pm-toggle-bar { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-lg); margin-bottom: 18px; }
+.pm-toggle-bar[data-on="true"] { border-color: var(--blue-border); background: linear-gradient(180deg, var(--blue-tint), #fff 80%); }
+.pm-toggle-ico { width: 40px; height: 40px; border-radius: var(--r-md); background: var(--canvas); display: flex; align-items: center; justify-content: center; flex: none; }
+.pm-toggle-bar[data-on="true"] .pm-toggle-ico { background: #fff; border: 1px solid var(--blue-border); }
+.pm-toggle-main { flex: 1; min-width: 0; }
+.pm-toggle-t { font-size: 14px; font-weight: 600; color: var(--text-900); display: flex; align-items: center; gap: 9px; }
+.pm-toggle-s { font-size: 12px; line-height: 18px; color: var(--text-500); margin-top: 3px; }
+.pm-toggle-state { font-size: 12px; font-weight: 600; }
+
+/* 开关组件 */
+.pm-switch { position: relative; width: 44px; height: 25px; border-radius: 999px; background: var(--border-300); border: none; cursor: pointer; transition: background var(--dur-base); flex: none; padding: 0; }
+.pm-switch[data-on="true"] { background: var(--blue-primary); }
+.pm-switch-knob { position: absolute; top: 2px; left: 2px; width: 21px; height: 21px; border-radius: 999px; background: #fff; box-shadow: var(--shadow-sm); transition: transform var(--dur-base) var(--ease-out); }
+.pm-switch[data-on="true"] .pm-switch-knob { transform: translateX(19px); }
+
+/* 工作台准入徽标（成员表） */
+.pm-wb { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; }
+.pm-wb.yes { color: var(--success); }
+.pm-wb.no { color: var(--text-400); }
+
+/* 权限概览（成员表） */
+.pm-perm-sum { display: inline-flex; gap: 8px; align-items: center; }
+.pm-perm-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--r-full); }
+.pm-perm-chip.edit { color: var(--blue-primary); background: var(--blue-tint); }
+.pm-perm-chip.view { color: var(--text-500); background: var(--neutral-bg); }
+
+/* ---------- 权限矩阵（抽屉内可勾选） ---------- */
+.pm-matrix-tools { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.pm-matrix-hint { font-size: 11.5px; color: var(--text-400); flex: 1; }
+.pm-matrix { border: 1px solid var(--border-200); border-radius: var(--r-md); overflow: hidden; }
+.pm-matrix-head { display: grid; grid-template-columns: 1fr 58px 58px; align-items: center; padding: 9px 14px; background: var(--canvas); border-bottom: 1px solid var(--border-200); }
+.pm-matrix-head .lbl { font-size: 11px; font-weight: 600; color: var(--text-400); text-transform: uppercase; letter-spacing: .03em; }
+.pm-matrix-head .c { text-align: center; font-size: 10.5px; font-weight: 700; }
+.pm-matrix-head .c.view { color: var(--text-500); }
+.pm-matrix-head .c.edit { color: var(--blue-primary); }
+.pm-matrix-group-t { font-size: 11px; font-weight: 700; letter-spacing: .02em; color: var(--text-500); padding: 11px 14px 7px; background: var(--canvas); display: flex; align-items: center; gap: 7px; border-bottom: 1px solid var(--divider); }
+.pm-matrix-row { display: grid; grid-template-columns: 1fr 58px 58px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--divider); }
+.pm-matrix-row:last-child { border-bottom: none; }
+.pm-matrix-name { font-size: 13px; font-weight: 500; color: var(--text-900); }
+.pm-matrix-sub { font-size: 11px; color: var(--text-400); margin-top: 2px; }
+.pm-matrix-note { font-size: 10.5px; color: var(--closure); margin-top: 3px; display: inline-flex; align-items: center; gap: 4px; }
+.pm-cell { display: flex; justify-content: center; }
+.pm-check { width: 22px; height: 22px; border-radius: var(--r-xs); border: 1.5px solid var(--border-300); background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--dur-fast); padding: 0; }
+.pm-check:disabled { cursor: default; }
+.pm-check[data-on="true"][data-kind="view"] { background: var(--text-500); border-color: var(--text-500); }
+.pm-check[data-on="true"][data-kind="edit"] { background: var(--blue-primary); border-color: var(--blue-primary); }
+.pm-check[data-on="false"]:not(:disabled):hover { border-color: var(--blue-primary); }
+.pm-check:disabled[data-on="false"] { background: var(--canvas); opacity: .6; }
+
+.pm-legend { display: flex; gap: 18px; margin-top: 12px; flex-wrap: wrap; }
+.pm-legend-i { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--text-500); }
+.pm-legend-sw { width: 15px; height: 15px; border-radius: var(--r-xs); flex: none; }
+.pm-legend-sw.view { background: var(--text-500); }
+.pm-legend-sw.edit { background: var(--blue-primary); }
+
+/* 归属（项目集 / 项目） */
+.pm-belong { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-700); }
+.pm-belong .mono { font-family: var(--font-mono); color: var(--text-400); font-size: 11px; }
+
+/* 角色分配（管理层超管能力） */
+.pm-role-assign { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.pm-role-opt { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border-300); border-radius: var(--r-md); background: #fff; cursor: pointer; font-size: 12.5px; font-weight: 500; color: var(--text-700); transition: all var(--dur-fast); text-align: left; }
+.pm-role-opt .ic { flex: none; }
+.pm-role-opt:hover:not(:disabled) { border-color: var(--blue-border); background: var(--blue-tint); }
+.pm-role-opt[data-on="true"] { border-color: var(--blue-primary); background: var(--blue-tint); color: var(--blue-deep); font-weight: 600; }
+.pm-role-opt:disabled { opacity: .55; cursor: default; }
+.pm-role-assign-hint { font-size: 11px; color: var(--text-400); font-weight: 400; margin-left: 6px; }
+
+/* 角色卡片 = 权限模板维护入口 */
+.pm-persona.clickable { cursor: pointer; transition: box-shadow var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast); border: 1px solid var(--border-200); }
+.pm-persona.clickable:hover { box-shadow: var(--shadow-md); border-color: var(--border-300); transform: translateY(-2px); }
+.pm-role-sum { display: flex; gap: 14px; padding: 12px 2px 0; }
+.pm-role-sum-i { display: flex; flex-direction: column; gap: 3px; }
+.pm-role-sum-v { font-family: var(--font-mono); font-size: 18px; font-weight: 600; color: var(--text-900); line-height: 1; }
+.pm-role-sum-v.edit { color: var(--blue-primary); }
+.pm-role-sum-k { font-size: 10.5px; color: var(--text-500); }
+.pm-role-cta { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--blue-primary); margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--divider); }
+.pm-role-mcount { margin-left: auto; font-size: 11px; color: var(--text-400); font-weight: 500; }
+
+/* 工作台准入开关（角色权限编辑） */
+.pm-wb-toggle { display: flex; align-items: center; gap: 12px; padding: 13px 15px; border: 1px solid var(--border-200); border-radius: var(--r-md); background: var(--canvas); margin-bottom: 14px; }
+.pm-wb-toggle-main { flex: 1; min-width: 0; }
+.pm-wb-toggle-t { font-size: 13px; font-weight: 600; color: var(--text-900); }
+.pm-wb-toggle-s { font-size: 11.5px; color: var(--text-500); margin-top: 2px; }
+
+/* 成员表 · 角色归属来源标注 */
+.pm-inherit-note { display: flex; align-items: center; gap: 8px; padding: 10px 13px; background: var(--blue-tint); border: 1px solid var(--blue-border); border-radius: var(--r-md); font-size: 12px; color: var(--text-700); margin-bottom: 12px; }
+
+/* 角色权限模板 · 列表（取代卡片网格） */
+.pm-rolelist { border: 1px solid var(--border-200); border-radius: var(--r-lg); overflow: hidden; background: #fff; }
+.pm-rolerow { display: flex; align-items: center; gap: 16px; width: 100%; padding: 15px 20px; border: none; border-bottom: 1px solid var(--divider); background: transparent; cursor: pointer; text-align: left; transition: background var(--dur-fast); }
+.pm-rolerow:last-child { border-bottom: none; }
+.pm-rolerow:hover { background: var(--canvas); }
+.pm-rolerow-ico { width: 40px; height: 40px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; flex: none; }
+.pm-rolerow-main { min-width: 0; width: 230px; flex: none; }
+.pm-rolerow-name { font-size: 14px; font-weight: 600; color: var(--text-900); display: flex; align-items: center; gap: 8px; }
+.pm-rolerow-badge { font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; padding: 1px 6px; border-radius: var(--r-xs); white-space: nowrap; }
+.pm-rolerow-sub { font-size: 11.5px; color: var(--text-500); margin-top: 3px; }
+.pm-rolerow-access { margin-top: 0 !important; flex: none; white-space: nowrap; }
+.pm-rolerow-perms { display: flex; gap: 18px; flex: 1; min-width: 0; }
+.pm-rolerow-perm { display: flex; align-items: baseline; gap: 5px; }
+.pm-rolerow-perm .v { font-family: var(--font-mono); font-size: 16px; font-weight: 600; color: var(--text-900); letter-spacing: -.01em; }
+.pm-rolerow-perm .v.edit { color: var(--blue-primary); }
+.pm-rolerow-perm .k { font-size: 11px; color: var(--text-500); }
+.pm-rolerow-members { font-size: 12px; color: var(--text-400); flex: none; white-space: nowrap; }
+.pm-rolerow-cta { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--blue-primary); flex: none; white-space: nowrap; }
+
+@media (max-width: 980px) {
+  .pm-rolerow { flex-wrap: wrap; gap: 10px 14px; }
+  .pm-rolerow-main { width: auto; flex: 1; }
+  .pm-rolerow-perms { flex: 1 1 100%; padding-left: 56px; }
+}

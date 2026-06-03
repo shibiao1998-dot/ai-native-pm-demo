@@ -1,0 +1,131 @@
+/* ============================================================
+   总入口 Portal — 平台落地页（搜索进入项目 / 进入项目管理工作台）
+   延续批 0：商务蓝白、Inter + IBM Plex Mono、克制专业
+   ============================================================ */
+
+.portal {
+  position: fixed; inset: 0; overflow-y: auto;
+  background:
+    radial-gradient(1100px 520px at 50% -8%, var(--blue-tint) 0%, rgba(239,245,255,0) 62%),
+    var(--canvas);
+  display: flex; flex-direction: column;
+}
+
+/* ---- 顶部条 ---- */
+.portal-top {
+  flex: none; height: 64px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 28px;
+}
+.portal-brand { display: flex; align-items: center; gap: 10px; }
+.portal-brand .brand-mark { width: 30px; height: 30px; }
+.portal-brand-name { font-size: 16px; font-weight: 600; color: var(--text-900); letter-spacing: -.01em; white-space: nowrap; }
+.portal-brand-name span { color: var(--text-400); font-weight: 500; }
+.portal-top-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.portal-wb-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px 0 13px;
+  border: 1px solid var(--border-200); border-radius: var(--r-sm); background: #fff;
+  font-size: 13px; font-weight: 600; color: var(--text-900); cursor: pointer;
+  box-shadow: var(--shadow-xs); transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast);
+}
+.portal-wb-btn:hover { border-color: var(--blue-border); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.portal-avatar {
+  width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--border-200);
+  background: linear-gradient(135deg, #E7EDF7, #D7E2F4); color: var(--blue-deep);
+  font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex: none;
+}
+
+/* ---- 主体居中 ---- */
+.portal-main {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 4vh 24px 64px; width: 100%;
+}
+.portal-hero { width: 100%; max-width: 720px; text-align: center; margin-top: 5vh; }
+.portal-eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--blue-primary); background: var(--blue-tint); border: 1px solid var(--blue-border);
+  padding: 5px 12px 5px 10px; border-radius: var(--r-full); white-space: nowrap;
+}
+.portal-title { font-size: 36px; line-height: 44px; font-weight: 600; letter-spacing: -.02em; color: var(--text-900); margin: 20px 0 0; }
+.portal-sub { font-size: 15px; line-height: 24px; color: var(--text-500); margin: 12px auto 0; max-width: 540px; text-wrap: pretty; }
+
+/* ---- 搜索框 ---- */
+.portal-search-wrap { width: 100%; max-width: 640px; margin: 30px auto 0; position: relative; }
+.portal-search {
+  display: flex; align-items: center; gap: 12px; height: 60px; padding: 0 8px 0 18px;
+  background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm); transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.portal-search.focused { border-color: var(--blue-primary); box-shadow: var(--ring-focus), var(--shadow-md); }
+.portal-search input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-size: 16px; font-family: var(--font-sans); color: var(--text-900);
+}
+.portal-search input::placeholder { color: var(--text-400); }
+.portal-search-kbd { font-family: var(--font-mono); font-size: 12px; padding: 4px 9px; background: var(--canvas); border: 1px solid var(--border-200); border-radius: var(--r-sm); color: var(--text-500); }
+.portal-search-clear { width: 34px; height: 34px; border: none; background: transparent; border-radius: var(--r-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.portal-search-clear:hover { background: var(--canvas); }
+
+/* ---- 搜索结果下拉 ---- */
+.portal-results {
+  position: absolute; top: 68px; left: 0; right: 0; z-index: 30;
+  background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg); overflow: hidden; text-align: left;
+  animation: enter-up var(--dur-base) var(--ease-out);
+}
+.portal-results-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px 6px; }
+.portal-results-list { max-height: 50vh; overflow-y: auto; padding: 4px; }
+.portal-res {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px;
+  border: none; background: transparent; border-radius: var(--r-sm); cursor: pointer; text-align: left;
+  transition: background var(--dur-fast);
+}
+.portal-res:hover, .portal-res[data-active="true"] { background: var(--blue-tint); }
+.portal-res-ico { width: 34px; height: 34px; border-radius: var(--r-sm); background: var(--canvas); display: flex; align-items: center; justify-content: center; flex: none; }
+.portal-res[data-active="true"] .portal-res-ico, .portal-res:hover .portal-res-ico { background: #fff; }
+.portal-res-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.portal-res-name { font-size: 14px; font-weight: 500; color: var(--text-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.portal-res-sub { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-400); }
+.portal-res-id { font-family: var(--font-mono); }
+.portal-res-enter { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--blue-primary); font-weight: 600; white-space: nowrap; opacity: 0; transition: opacity var(--dur-fast); }
+.portal-res:hover .portal-res-enter, .portal-res[data-active="true"] .portal-res-enter { opacity: 1; }
+.portal-empty { padding: 28px 16px; text-align: center; color: var(--text-400); font-size: 13px; }
+
+/* ---- 最近访问 ---- */
+.portal-recent { width: 100%; max-width: 920px; margin: 48px auto 0; }
+.portal-recent-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.portal-recent-title { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-400); }
+.portal-recent-link { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; color: var(--blue-primary); background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: var(--r-sm); }
+.portal-recent-link:hover { background: var(--blue-tint); }
+.portal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.portal-card {
+  display: flex; flex-direction: column; gap: 14px; padding: 16px; text-align: left;
+  background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-xs); cursor: pointer;
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast);
+}
+.portal-card:hover { border-color: var(--blue-border); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.portal-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.portal-card-name { font-size: 15px; font-weight: 600; color: var(--text-900); line-height: 22px; }
+.portal-card-id { font-family: var(--font-mono); font-size: 11px; color: var(--text-400); margin-top: 3px; }
+.portal-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.portal-card-mode { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-500); }
+.portal-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--divider); padding-top: 12px; white-space: nowrap; }
+.portal-card-owner { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-500); white-space: nowrap; }
+.portal-card-ava { width: 22px; height: 22px; border-radius: 999px; background: var(--blue-tint); color: var(--blue-deep); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+
+/* ---- 底部统计 ---- */
+.portal-foot { width: 100%; max-width: 920px; margin: 36px auto 0; display: flex; align-items: center; justify-content: center; gap: 28px; }
+.portal-stat { display: flex; align-items: baseline; gap: 7px; color: var(--text-500); font-size: 13px; }
+.portal-stat b { font-family: var(--font-mono); font-size: 15px; font-weight: 600; color: var(--text-900); }
+.portal-stat-sep { width: 1px; height: 14px; background: var(--border-300); }
+
+@media (max-width: 880px) {
+  .portal-grid { grid-template-columns: repeat(2, 1fr); }
+  .portal-foot { flex-wrap: wrap; gap: 14px 24px; }
+}
+@media (max-width: 560px) {
+  .portal-grid { grid-template-columns: 1fr; }
+  .portal-title { font-size: 28px; line-height: 36px; }
+}

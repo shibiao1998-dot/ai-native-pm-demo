@@ -1,0 +1,44 @@
+/* ============================================================
+   页面样式 — pages.css （首页 / 占位页）
+   ============================================================ */
+
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.page-head-right { display: flex; align-items: center; gap: 10px; }
+.page-head-ico { width: 36px; height: 36px; border-radius: var(--r-md); background: var(--blue-tint); display: flex; align-items: center; justify-content: center; }
+
+/* 状态演示分段控件 */
+.seg { display: inline-flex; background: var(--divider); border-radius: var(--r-sm); padding: 2px; }
+.seg-btn { border: none; background: transparent; font-size: 12px; font-weight: 500; color: var(--text-500); padding: 4px 11px; border-radius: 4px; cursor: pointer; transition: all var(--dur-fast); }
+.seg-btn[data-on="true"] { background: #fff; color: var(--text-900); box-shadow: var(--shadow-xs); }
+
+/* 指标行 */
+.metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+/* 看板行 */
+.board-row { display: grid; grid-template-columns: 1fr 360px; gap: 16px; margin-top: 16px; }
+.board-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+
+.board-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; padding-bottom: 22px; border-bottom: 1px solid var(--divider); }
+.board-stat { min-width: 0; }
+
+.board-trend { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding: 22px 0 4px; }
+.trend-block { min-width: 0; }
+
+.board-foot-link { display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 18px; padding: 11px; border: 1px dashed var(--border-300); border-radius: var(--r-sm); background: transparent; color: var(--blue-primary); font-size: 13px; font-weight: 500; cursor: pointer; justify-content: center; transition: background var(--dur-fast), border-color var(--dur-fast); }
+.board-foot-link:hover { background: var(--blue-tint); border-color: var(--blue-border); border-style: solid; }
+
+/* 健康分布 */
+.dist-bar { display: flex; gap: 3px; height: 10px; margin-top: 22px; }
+.dist-seg { height: 100%; border-radius: 3px; transition: width 700ms var(--ease-out); }
+.dist-legend { margin-top: 16px; display: flex; flex-direction: column; gap: 2px; }
+.dist-leg-item { display: flex; align-items: center; gap: 8px; padding: 7px 6px; border: none; background: transparent; border-radius: var(--r-sm); width: 100%; text-align: left; }
+.dist-leg-item[data-click="true"] { cursor: pointer; }
+.dist-leg-item[data-click="true"]:hover { background: var(--canvas); }
+.dist-leg-dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+
+@media (max-width: 1100px) {
+  .metric-row { grid-template-columns: 1fr; }
+  .board-row { grid-template-columns: 1fr; }
+  .board-grid { grid-template-columns: 1fr; gap: 18px; }
+  .board-trend { grid-template-columns: 1fr; gap: 18px; }
+}
