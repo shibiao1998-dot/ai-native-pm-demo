@@ -1,14 +1,19 @@
 /* ============================================================
    页面 2.1b · 管理者意图录入
-   项目集负责人主动以自然语言 / 文件提交规划；复用「战略意图识别」
-   的传导逻辑，但输入源由「每日战略文档」改为「负责人主动输入」。
-   AI 识别战略意图 → 自动落实 → 每次提交沉淀为一条「规划记录」（AI
-   自动总结标题 + 日期），可在记录间切换查看其详情、影响与异步反馈。
+   ------------------------------------------------------------
+   作用：项目集负责人主动以自然语言 / 文件提交规划。复用「战略意图识别」的传导逻辑，
+         但输入源由「每日战略文档」改为「负责人主动输入」。
+   核心流程：AI 识别战略意图 → 自动落实 → 每次提交沉淀为一条「规划记录」
+         （AI 自动总结标题 + 日期），可在记录间切换查看详情、影响与异步反馈。
+   状态机（见 ManagerIntent.stage）：compose 录入 → analyzing 分析 → result 记录详情
+         / newresult 新领域（冷启动，新建项目集）。
+   依赖：复用 pages_b2_strategy.jsx 的 ActionReviewDialog / FeedbackEntry / PortfolioPicker。
    ============================================================ */
 
 const TODAY = '2026-06-02';
 
-/* AI 自动总结输入为标题 */
+/* summarizeTitle — 把用户输入的一段话自动提炼为记录标题（取首句、超 18 字截断）。
+   ⚠ 真实开发：应由后端/大模型生成标题，此为前端简化模拟。 */
 function summarizeTitle(text) {
   const t = (text || '').trim();
   if (!t) return '未命名规划';
@@ -24,7 +29,8 @@ const MI_MEM_META = {
 };
 
 /* 每个项目集 · 负责人规划记录（最新在前）。每条记录自带 AI 总结标题、日期、
-   原始输入、识别意图与影响（结构同战略层影响分析，新增「备选成员调整」） */
+   原始输入 input、识别意图 intent 与四类影响（结构同战略层，新增 members 「备选成员调整」）。
+   ⚠ mock 数据：真实开发需接后端规划记录接口。 */
 const INTENT_HISTORY = {
   service: [
     {
@@ -165,8 +171,10 @@ const MI_STEPS = [
 const fmtBytes = (n) => n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1048576).toFixed(1)} MB`;
 const mdDate = (full) => full ? full.slice(5) : '';
 
-/* ---------- 录入态：自然语言 + 文件 ---------- */
-function IntentComposer({ text, onText, files, onFiles, onSubmit }) {
+/* ---------- 录入态：自然语言 + 文件 ----------
+   IntentComposer：文本输入 + 拖拽/点击上传文件（最多 6 个）。
+   交互：drag 状态控拖拽高亮；addFiles 追加文件；受控 text/files 由父级持有，onnSubmit 提交。 */
+function IntentComposer({ text, onText, files, onFiles, onSubmit, placeholder }) {
   const fileRef = React.useRef(null);
   const [drag, setDrag] = React.useState(false);
 
@@ -188,7 +196,7 @@ function IntentComposer({ text, onText, files, onFiles, onSubmit }) {
         className="mi-textarea"
         value={text}
         onChange={(e) => onText(e.target.value)}
-        placeholder="例如：希望把客服自助能力延伸到售后场景，重点是退换货和理赔的自助办理…"
+        placeholder={placeholder || "例如：希望把客服自助能力延伸到售后场景，重点是退换货和理赔的自助办理…"}
       />
 
       <div
@@ -229,7 +237,8 @@ function IntentComposer({ text, onText, files, onFiles, onSubmit }) {
   );
 }
 
-/* ---------- 本项目集规划记录列表（录入态下方） ---------- */
+/* ---------- 本项目集规划记录列表（录入态下方） ----------
+   RecordsList：点某条 → onOpen(id) 打开该记录详情。 */
 function RecordsList({ records, onOpen }) {
   return (
     <Card className="mi-recs">
@@ -255,7 +264,8 @@ function RecordsList({ records, onOpen }) {
   );
 }
 
-/* ---------- 规划记录标题选择器（替代日期选择） ---------- */
+/* ---------- 规划记录标题选择器（替代日期选择） ----------
+   TitlePicker：result 态下在记录间切换。open 控制下拉，点外部关闭。 */
 function TitlePicker({ records, value, onChange }) {
   const [open, setOpen] = React.useState(false);
   React.useEffect(() => {
@@ -292,7 +302,9 @@ function TitlePicker({ records, value, onChange }) {
   );
 }
 
-/* ---------- 分析态 ---------- */
+/* ---------- 分析态 ----------
+   IntentAnalyzing：提交后的「AI 分析中」动画。step 计数器逐步点亮 MI_STEPS（识别→预估→评估→落实）。
+   ⚠ 纯演示：用 setTimeout 逐步推进，真实开发以后端任务进度驱动。 */
 function IntentAnalyzing() {
   const [step, setStep] = React.useState(0);
   React.useEffect(() => {
@@ -327,7 +339,10 @@ function IntentAnalyzing() {
   );
 }
 
-/* ---------- 记录详情 · 影响看板 ---------- */
+/* ---------- 记录详情 · 影响看板 ----------
+   IntentBoard：展示一条规划记录的原始输入、AI 识别意图、以及 AI 已执行的四类动作。
+   交互：每条动作右上角反馈按钮 → onFeedback(action) 打开复核对话（同战略层）。
+   props：record 记录对象；isNew 是否本轮刚提交（首部图标不同）。 */
 function IntentBoard({ record, isNew, onFeedback }) {
   const buckets = { uptake: record.uptake, newSub: record.newSub, pool: record.pool, members: record.members };
   const total = buckets.uptake.length + buckets.newSub.length + buckets.pool.length + buckets.members.length;
@@ -495,24 +510,185 @@ function IntentBoard({ record, isNew, onFeedback }) {
   );
 }
 
-function ManagerIntent() {
+/* ============================================================
+   新领域 / 冷启动 · AI 归属判定 → 新建项目集
+   现有项目集无法承接（或系统空库）时，意图不再被迫塞入既有项目集，
+   而是由 AI 判定为全新方向 → 新建项目集 → 首个候选入池 → 登记进战略层。
+   ============================================================ */
+const NEW_DOMAIN_SAMPLE = {
+  intentSummary: '识别为一个全新战略方向：面向线下门店导购的 AI 助手，现有项目集均未覆盖该场景。',
+  reason: '逐一比对现有项目集的北极星与边界——「线下门店导购」既不属于客户服务自助化的线上自助范畴，也不在履约、增长、数据中台的边界内。AI 判定为全新方向，新建独立项目集承接，避免塞入既有项目集稀释其聚焦。',
+  portfolio: { name: '智能门店导购', owner: 'AI 自治', ownerSuggest: '建议负责人 林越', north: '导购人效与连带率双升', scope: '面向线下门店导购，构建商品知识实时问答、销售话术生成与顾客跟进提醒的端到端 AI 助手能力。' },
+  firstProject: { name: 'AI 导购助手', note: '作为新项目集的首个候选沉淀进备选池，AI 正在补齐六维分析与门槛校验，达标后自动立项。' },
+  strategy: { note: '已作为「管理者发起」的新增战略方向登记进战略意图识别，纳入每日战略比对与向下传导；后续战略文档若涉及该方向，会与此归并。' },
+};
+
+/* NewDomainBoard — 新领域 / 冷启动的归属判定看板。
+   作用：现有项目集都无法承接时，AI 判定为全新方向 → 新建项目集 → 首个候选入池 → 登记进战略层。
+   交互：confirmed 控制「确认建立项目集」前后态；底部联动算力观测（读 OB_TRACES 算本次链路花费）。 */
+function NewDomainBoard({ input, files, onNavigate, onToast }) {
+  const d = NEW_DOMAIN_SAMPLE;
+  const [confirmed, setConfirmed] = React.useState(false);
+  const trc = (window.OB_TRACES || []).find(t => t.id === 'TRC-2026-0602-01');
+  const agg = trc && window.obTraceAgg ? window.obTraceAgg(trc) : null;
+  const costVal = agg ? (agg.cin + agg.cout).toFixed(1) : '10.2';
+  const costLine = agg ? `从识别意图到草拟立项，AI 共 ${agg.calls} 次调用 · 耗时 ${window.obFmtMs(agg.ms)} · Token ${window.obFmtTok(agg.tin + agg.tout)}` : '从识别意图到草拟立项的全过程耗时与 Token 均已逐次记录';
+  React.useEffect(() => { refreshIcons(); });
+  return (
+    <>
+      <Card className="mi-recap">
+        <div className="mi-recap-head">
+          <span className="mi-ai-ava"><Icon name="sparkles" size={15} color="var(--ai)" /></span>
+          <div className="mi-recap-head-main">
+            <div className="t-h3" style={{ fontSize: 15 }}>{d.portfolio.name} · 新领域</div>
+          </div>
+          <span className="mi-intent-tag"><Icon name="scan-search" size={12} color="var(--ai)" />全新战略方向</span>
+        </div>
+        {input && <blockquote className="mi-quote">{input}</blockquote>}
+        {files && files.length > 0 && (
+          <div className="mi-files" style={{ marginTop: 10 }}>
+            {files.map((f, i) => (
+              <span className="mi-file" key={i}><Icon name="file-text" size={13} color="var(--blue-primary)" /><span className="mi-file-nm">{f.name}</span></span>
+            ))}
+          </div>
+        )}
+        <div className="mi-recap-intent"><Icon name="sparkles" size={13} color="var(--ai)" /><span><b>AI 识别意图：</b>{d.intentSummary}</span></div>
+      </Card>
+
+      {/* 1 · 归属判定 */}
+      <Card>
+        <div className="st-panel-head">
+          <Icon name="git-pull-request-arrow" size={17} color="var(--ai)" />
+          <span className="t-h3">战略意图归属判定</span>
+          <span className="nd-verdict-tag"><Icon name="sparkles" size={12} color="var(--ai)" />新建项目集</span>
+        </div>
+        <div className="st-panel-body">
+          <div className="nd-attr">
+            <div className="nd-attr-lab">比对现有项目集</div>
+            <div className="nd-attr-chips">
+              {PORTFOLIOS.map(p => (
+                <span className="nd-chip" key={p.id}>{p.name}<Icon name="x" size={11} color="var(--danger)" /></span>
+              ))}
+            </div>
+          </div>
+          <div className="nd-arrow"><Icon name="arrow-down" size={16} color="var(--text-400)" /></div>
+          <div className="nd-verdict-card">
+            <span className="nd-verdict-ico"><Icon name="sparkles" size={16} color="var(--ai)" /></span>
+            <div className="nd-verdict-main">
+              <div className="nd-verdict-t">现有项目集均无法承接 · 建议新建项目集</div>
+              <div className="nd-verdict-s">{d.reason}</div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* 2 · 新建项目集 */}
+      <Card>
+        <div className="st-panel-head">
+          <Icon name="layers" size={17} color="var(--blue-primary)" />
+          <span className="t-h3">新建项目集 · 待确认</span>
+          {confirmed
+            ? <span className="nd-verdict-tag" style={{ color: 'var(--success)', background: 'var(--success-bg)' }}><Icon name="check" size={12} color="var(--success)" />已建立</span>
+            : <span className="t-micro" style={{ color: 'var(--text-400)', marginLeft: 'auto' }}>AI 已草拟</span>}
+        </div>
+        <div className="st-panel-body">
+          <div className="nd-pf">
+            <div className="nd-pf-row"><span className="nd-pf-k">项目集名称</span><span className="nd-pf-v nd-pf-name">{d.portfolio.name}</span></div>
+            <div className="nd-pf-row"><span className="nd-pf-k">负责模式</span><span className="nd-pf-v"><Icon name="bot" size={14} color="var(--ai)" />{d.portfolio.owner}<span className="nd-pf-suggest">{d.portfolio.ownerSuggest}</span></span></div>
+            <div className="nd-pf-row"><span className="nd-pf-k">北极星指标</span><span className="nd-pf-v">{d.portfolio.north}</span></div>
+            <div className="nd-pf-row"><span className="nd-pf-k">初始范围</span><span className="nd-pf-v">{d.portfolio.scope}</span></div>
+          </div>
+          {confirmed ? (
+            <div className="st-exec-banner" style={{ marginTop: 14 }}>
+              <Icon name="check-circle-2" size={14} color="var(--success)" />
+              <span>项目集「{d.portfolio.name}」已建立，负责模式 {d.portfolio.owner}。此后该领域的管理者意图与战略变化都会自动归属到此项目集。</span>
+            </div>
+          ) : (
+            <div className="nd-actions">
+              <Button variant="primary" icon="check" onClick={() => { setConfirmed(true); onToast && onToast('已建立项目集 ·「' + d.portfolio.name + '」（演示）'); }}>确认建立项目集</Button>
+              <FeedbackEntry label="对归属判定留意见"
+                context={{ scene: '管理者意图 · 归属判定', did: 'AI 判定该意图为全新方向并草拟了新建项目集方案', ask: '归属判定结论、项目集命名或初始范围' }}
+                onClick={() => {}} />
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* 3 · 首个候选入池 */}
+      <Card>
+        <div className="st-panel-head">
+          <Icon name="inbox" size={17} color="var(--success)" />
+          <span className="t-h3">首个候选项目 · 沉淀备选池</span>
+        </div>
+        <div className="st-panel-body">
+          <div className="st-imp-item">
+            <div className="st-imp-row">
+              <span className="st-imp-name"><Icon name="git-branch" size={14} color="var(--success)" />{d.firstProject.name}</span>
+              <span className="st-imp-action" style={{ color: 'var(--ai)', background: 'var(--ai-soft)' }}><Icon name="loader-2" size={12} color="var(--ai)" className="spin" />AI 多维分析中</span>
+            </div>
+            <div className="st-sub-foot"><Icon name="info" size={12} color="var(--text-400)" />{d.firstProject.note}</div>
+          </div>
+          <button className="nd-link" onClick={() => onNavigate && onNavigate('pool')}><Icon name="arrow-up-right" size={13} color="var(--blue-primary)" />前往项目备选池查看</button>
+        </div>
+      </Card>
+
+      {/* 4 · 本次链路花费 · 联动算力观测 */}
+      <div className="nd-cost">
+        <span className="nd-cost-ico"><Icon name="gauge" size={18} color="var(--blue-primary)" /></span>
+        <div className="nd-cost-main">
+          <div className="nd-cost-t">本次链路已记录算力花费</div>
+          <div className="nd-cost-s">{costLine}</div>
+        </div>
+        <div className="nd-cost-v"><span className="cur">¥</span><span className="mono">{costVal}</span></div>
+        <Button variant="secondary" icon="git-fork" onClick={() => { window.__cbTab = 'trace'; window.__traceId = 'TRC-2026-0602-01'; onNavigate && onNavigate('cost-board'); }}>查看全链路成本</Button>
+      </div>
+
+      {/* 5 · 战略层登记（联动） */}
+      <div className="nd-strat">
+        <span className="nd-strat-ico"><Icon name="compass" size={18} color="var(--blue-primary)" /></span>
+        <div className="nd-strat-main">
+          <div className="nd-strat-t">已同步登记进「战略意图识别」</div>
+          <div className="nd-strat-s">{d.strategy.note}</div>
+        </div>
+        <Button variant="secondary" icon="arrow-right" onClick={() => onNavigate && onNavigate('strategy')}>查看战略意图识别</Button>
+      </div>
+    </>
+  );
+}
+
+/* ManagerIntent — 管理者意图页主体（状态机总控）。
+   状态：pf 项目集（'__new__' 为新领域）；stage 四态；text/files 录入内容；
+     extra 本会话新增的记录（pfId→[记录]）；selId 当前查看的记录；liveId 本轮刚提交的。
+   submit：新领域走 newresult；否则拼一条新记录插入 extra（2.6s 模拟分析）后进 result。
+   records：本会话新记录 + 历史记录合并（新的在前）。 */
+function ManagerIntent({ onNavigate }) {
   const [pf, setPf] = React.useState(() => PORTFOLIOS[0].id);
-  const [stage, setStage] = React.useState('compose'); // compose | analyzing | result
+  const [stage, setStage] = React.useState('compose'); // compose 录入 | analyzing 分析 | result 记录详情 | newresult 新领域
   const [text, setText] = React.useState('');
   const [files, setFiles] = React.useState([]);
-  const [extra, setExtra] = React.useState({});       // pfId -> [新增记录]
+  const [extra, setExtra] = React.useState({});       // pfId -> [新增记录]（本会话提交的）
   const [selId, setSelId] = React.useState(null);
-  const [liveId, setLiveId] = React.useState(null);   // 本轮刚提交的记录 id
+  const [liveId, setLiveId] = React.useState(null);   // 本轮刚提交的记录 id（高亮「新」）
   const [fbAction, setFbAction] = React.useState(null);
   const [toast, setToast] = React.useState(null);
 
+  const isNewDomain = pf === '__new__';
   const curPf = PORTFOLIOS.find(p => p.id === pf);
-  const records = React.useMemo(() => [...(extra[pf] || []), ...INTENT_HISTORY[pf]], [extra, pf]);
+  const records = React.useMemo(
+    () => isNewDomain ? [] : [...(extra[pf] || []), ...(INTENT_HISTORY[pf] || [])],
+    [extra, pf, isNewDomain]
+  );
   const selected = records.find(r => r.id === selId) || records[0];
 
-  const changePf = (v) => { setPf(v); setStage('compose'); setText(''); setFiles([]); setSelId(null); setLiveId(null); };
+  const resetCompose = () => { setStage('compose'); setText(''); setFiles([]); setSelId(null); setLiveId(null); };
+  const changePf = (v) => { setPf(v); resetCompose(); };
 
   const submit = () => {
+    if (isNewDomain) {
+      setStage('analyzing');
+      setTimeout(() => setStage('newresult'), 2600);
+      return;
+    }
     const base = INTENT_HISTORY[pf][0];
     const rec = {
       id: 'live-' + Date.now(),
@@ -548,7 +724,7 @@ function ManagerIntent() {
       </div>
 
       <div className="st-version-rail">
-        <PortfolioPicker value={pf} onChange={changePf} />
+        <PortfolioPicker value={pf} onChange={changePf} allowNew />
         {stage === 'result' && records.length > 0 && (
           <>
             <span className="st-rail-div" />
@@ -558,18 +734,35 @@ function ManagerIntent() {
         )}
       </div>
 
+      {/* 新领域 · 录入引导条 */}
+      {isNewDomain && stage === 'compose' && (
+        <div className="mi-nd-banner">
+          <span className="mi-nd-banner-ico"><Icon name="sparkles" size={18} color="var(--ai)" /></span>
+          <div className="mi-nd-banner-main">
+            <div className="mi-nd-banner-t">新领域 · 不限定现有项目集</div>
+            <div className="mi-nd-banner-s">描述一个全新方向，AI 会先比对现有项目集——若都无法承接，则判定为新领域并新建独立项目集，而非塞入既有项目集。系统冷启动（空库）时，第一条意图同样以此路径新建第一个项目集。</div>
+          </div>
+        </div>
+      )}
+
       {stage === 'compose' && (
         <div className="mi-compose">
-          <IntentComposer text={text} onText={setText} files={files} onFiles={setFiles} onSubmit={submit} />
-          {records.length > 0 && <RecordsList records={records} onOpen={openRecord} />}
+          <IntentComposer
+            text={text} onText={setText} files={files} onFiles={setFiles} onSubmit={submit}
+            placeholder={isNewDomain ? '例如：我们想做一个面向线下门店导购的 AI 助手，帮导购实时查商品知识、生成话术、跟进顾客——现在没有任何项目在做这块…' : undefined}
+          />
+          {!isNewDomain && records.length > 0 && <RecordsList records={records} onOpen={openRecord} />}
         </div>
       )}
       {stage === 'analyzing' && <IntentAnalyzing />}
       {stage === 'result' && selected && (
         <IntentBoard record={selected} isNew={selected.id === liveId} onFeedback={(a) => setFbAction({ ...a, date: selected.date })} />
       )}
+      {stage === 'newresult' && (
+        <NewDomainBoard input={text.trim()} files={files} onNavigate={onNavigate} onToast={(msg) => setToast({ msg })} />
+      )}
 
-      <ActionReviewDialog action={fbAction} pfName={curPf.name} onClose={() => setFbAction(null)} onToast={setToast} />
+      <ActionReviewDialog action={fbAction} pfName={curPf ? curPf.name : '新领域'} onClose={() => setFbAction(null)} onToast={setToast} />
       <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );

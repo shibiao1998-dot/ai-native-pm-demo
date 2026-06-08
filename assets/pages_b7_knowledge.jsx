@@ -1,13 +1,14 @@
 /* ============================================================
    批 7 · 页面 7.3 · 知识库（经验沉淀 + RAG 赋能）
-   两类知识：
-   ① 结项经验 —— 项目正常 / 强制结项后沉淀的可复用范式（既有）。
-   ② 管理决策经验 —— 管理层在工作台的交互动作背后的逻辑与理由，
-      把过去的隐性管理经验（隐性规则）不断显性化为可复用规则。
-   两类知识统一通过 RAG 在 AI 执行任务时增强其上下文，赋能整个系统。
+   ------------------------------------------------------------
+   作用：沉淀两类知识并通过 RAG 在 AI 执行任务时增强上下文：
+         ① 结项经验 — 项目正常/强制结项后沉淀的可复用范式。
+         ② 管理决策经验 — 管理层在工作台的交互动作背后的逻辑与理由，把隐性管理经验显性化为可复用规则。
+   数据：KB_ENTRIES（结项）/ KB_DECISIONS（决策）均为 mock。
    ============================================================ */
 
-/* ---------- ① 结项经验 ---------- */
+/* ---------- ① 结项经验 ----------
+   每条：lessons 经验提炼 / scope 适用范围 / citedBy 被引用 / versions 版本历史。 */
 const KB_ENTRIES = [
   {
     id: 'PRJ-2026-0137', name: '智能履约调度中台', type: 'normal', date: '2026-06-14',
@@ -76,7 +77,9 @@ const KB_ENTRIES = [
   },
 ];
 
-/* ---------- ② 管理决策经验（隐性 → 显性） ---------- */
+/* ---------- ② 管理决策经验（隐性 → 显性） ----------
+   每条：action 当时动作 / tacit 隐性经验 / explicit 显性规则 / logic 背后逻辑 /
+   rag 赋能的 AI 技能及调用次数。体现「把靠人盯的管理经验沉淀为系统能力」。 */
 const KB_DECISIONS = [
   {
     id: 'DEC-2026-0061', kind: 'decision', date: '2026-06-01',
@@ -183,6 +186,8 @@ const KB_TYPE = {
 
 /* ============================================================
    抽屉 A · 结项经验详情（既有）
+   ------------------------------------------------------------
+   KnowledgeDrawer：用 doc_kit 拼装结项知识详情（来源/经验/适用范围/全文/引用/版本）。
    ============================================================ */
 function KnowledgeDrawer({ entry, onClose, onNavigate, onToast }) {
   const ty = entry ? KB_TYPE[entry.type] : null;
@@ -255,7 +260,9 @@ function KnowledgeDrawer({ entry, onClose, onNavigate, onToast }) {
 
 /* ============================================================
    抽屉 B · 管理决策经验详情（隐性 → 显性 + RAG 赋能）
-   ============================================================ */
+   ------------------------------------------------------------
+   DecisionDrawer：展示一条由管理动作显性化而来的规则：决策来源 → 隐性经验→显性规则
+     → 背后逻辑 → 适用范围 → RAG 赋能了哪些 AI 技能。 */
 function DecisionDrawer({ entry, onClose, onNavigate }) {
   return (
     <Drawer open={!!entry} onClose={onClose} width={640}
@@ -365,7 +372,9 @@ function DecisionDrawer({ entry, onClose, onNavigate }) {
 
 /* ============================================================
    7.3 知识库内容体（组合级治理 & 项目结项页复用）
-   ============================================================ */
+   ------------------------------------------------------------
+   KnowledgeBase：状态 q 检索词 / cat 分类（all/decision/closure）/ active 结项抽屉 / activeDec 决策抽屉。
+     decs/clos 按分类与检索词过滤两类知识并混排。 */
 function KnowledgeBase({ loading, onNavigate, onToast }) {
   const [q, setQ] = React.useState('');
   const [cat, setCat] = React.useState('all');
@@ -481,7 +490,7 @@ function KnowledgeBase({ loading, onNavigate, onToast }) {
 
 function entryScene(e) { return `${e.scene} · 一次管理决策`; }
 
-/* ---------- 组合级治理 · 知识库独立页 ---------- */
+/* KnowledgeStandalone — 治理菜单下的知识库独立页（外壳 + KnowledgeBase 内容体）。 */
 function KnowledgeStandalone({ onNavigate }) {
   const [loading, setLoading] = React.useState(true);
   const [toast, setToast] = React.useState(null);

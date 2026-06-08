@@ -1,11 +1,13 @@
 /* ============================================================
    批 7 · 结项  —  外壳 + 7.1 结项审核（正常结项）
-   项目达成立项预设目标后，AI 自动发起结项、撰写结项材料，管理层审核拍板。
-   不同意须说明理由 → AI 据理由判断是否新增目标 / 完善 → 动态更新理想化状态与节点。
-   承接批 0 设计系统 / 批 3 目标树 / 批 6 验收闭环。
+   ------------------------------------------------------------
+   作用：项目达成立项预设目标后，AI 自动发起结项、撰写结项材料，管理层审核拍板。
+         不同意须说明理由 → AI 据理由判断是否新增目标 / 完善 → 动态更新理想化状态与节点。
+   本文件含：结项外壳 ClosurePage（跨项目待结项队列 + 详情）+ 7.1 正常结项 ClosureReview。
+         强制结项 ForceClose 在 b7_force.jsx。数据：CL_* / CL_QUEUE 均为 mock。
    ============================================================ */
 
-/* 结项材料 · 三分区 */
+/* 结项材料 · 三分区（目标达成 / 关键产出 / 过程要点）。 */
 const CL_SECTIONS = [
   { n: '一', label: '目标达成', icon: 'target',
     body: '项目以「履约调度全面智能化、时效与成本双优」为理想化状态锚点立项，历时 11 周执行。两条中短期目标——「调度时效提升 30%」与「单均成本下降 15%」——均达成立项预设阈值；三条阶段目标全部验收通过，理想化状态推进度达 92%，满足正常结项条件。' },
@@ -57,9 +59,11 @@ const CL_ARCHIVE = [
   { text: '占用的算力与 AI 员工配额已释放回项目集资源池', icon: 'gauge', tone: 'neutral' },
 ];
 
-/* ---------- 7.1 结项审核（内容体） ---------- */
+/* ---------- 7.1 结项审核（内容体） ----------
+   ClosureReview：状态机 decision：pending 待拍板 → 同意 passed / 不同意 reasoning 填理由
+     → evaluating AI 据理由重评。呈现结项材料 + 产出汇总 + 达成对照 + 审核决策。 */
 function ClosureReview({ loading, onNavigate, onToast }) {
-  const [decision, setDecision] = React.useState('pending'); // pending | reasoning | evaluating | passed
+  const [decision, setDecision] = React.useState('pending'); // pending 待拍板 | reasoning 填理由 | evaluating 重评中 | passed 已同意
   const [reason, setReason] = React.useState('');
   React.useEffect(() => { refreshIcons(); });
 
@@ -220,7 +224,7 @@ function ClosureReview({ loading, onNavigate, onToast }) {
                   </div>
                 </div>
                 <div className="cl-decision-btns" style={{ marginTop: 14 }}>
-                  <Button variant="primary" icon="library" onClick={() => onToast && onToast('已进入知识库（切到「知识库」标签查看沉淀条目）')}>查看知识库沉淀</Button>
+                  <Button variant="primary" icon="library" onClick={() => onNavigate && onNavigate('knowledge')}>查看知识库沉淀</Button>
                   <Button variant="text" onClick={() => setDecision('pending')}>重置演示</Button>
                 </div>
               </>
@@ -237,61 +241,158 @@ function ClosureReview({ loading, onNavigate, onToast }) {
 }
 
 /* ============================================================
-   外壳：结项（三视图同源切换）
+   外壳：结项审批（组合级 · 跨项目）
+   ------------------------------------------------------------
+   结项是项目生命周期的终点闸门：由 AI 发起、管理层拍板。
+   运行中的项目不展示结项入口——只有触发结项条件的项目才进入此队列。
+   两种触发：正常结项（达成目标）/ 强制结项（战略变化）。
    ============================================================ */
-const CL_VIEWS = [
-  { id: 'review', label: '结项审核', icon: 'package-check' },
-  { id: 'force',  label: '强制结项', icon: 'octagon-alert' },
-  { id: 'knowledge', label: '知识库', icon: 'library' },
-];
-const CL_HEAD = {
-  review:    { title: '结项审核', desc: '项目达成立项预设目标后，AI 自动发起结项、撰写结项材料，管理层审核拍板。' },
-  force:     { title: '强制结项', desc: '战略变化导致某方向不再做时被动触发，AI 分析当前产出、生成报告，管理层审批 + 负责人双重确认。' },
-  knowledge: { title: '知识库',   desc: '结项成果沉淀为可检索的数据资产，供后续问题检索与新项目立项借鉴，形成良性循环。' },
+const CL_TYPE = {
+  normal: { label: '正常结项', icon: 'check-check', c: 'var(--closure)', bg: 'var(--closure-bg)', bd: 'var(--closure-bd)', trigK: '触发条件' },
+  force:  { label: '强制结项', icon: 'octagon-alert', c: 'var(--danger)', bg: 'var(--danger-bg)', bd: 'var(--danger)', trigK: '触发原因' },
 };
 
-function ClosurePage({ project, onNavigate }) {
-  const [view, setView] = React.useState('review');
+/* 跨项目待结项队列（达到结项条件的项目才在此出现） */
+const CL_QUEUE = [
+  {
+    id: 'sched', type: 'normal', project: '智能履约调度中台', pid: 'PRJ-2026-0137', owner: '何沛',
+    waited: '等待 1 天',
+    trigger: '验收闭环检测到理想化状态推进度达 92%，两条中短期目标与三条阶段目标全部达成立项预设阈值。',
+    metricK: '理想化状态推进度', metricV: '92%',
+    ai: 'AI 已汇总全生命周期 38 项事务产出并撰写结项材料，建议同意结项并沉淀进知识库。',
+  },
+  {
+    id: 'outbound', type: 'force', project: '智能外呼增长助手', pid: 'PRJ-2026-0151', owner: '周岚',
+    waited: '等待 3 天',
+    trigger: '战略调整：增长重心转向私域，外呼增长方向收缩，该项目剩余目标不再投入资源。',
+    metricK: '已完成目标', metricV: '4 / 9',
+    ai: 'AI 已分析当前产出与可迁移能力，生成强制结项报告，须管理层审批 + 负责人双重确认。',
+  },
+];
+
+/* ---------- 待结项队列卡片 ---------- */
+function ClosureQueueCard({ item, onOpen }) {
+  const t = CL_TYPE[item.type];
+  return (
+    <button className="iv-card cl-qcard" onClick={() => onOpen(item)}>
+      <span className="iv-card-bar" style={{ background: t.c }} />
+      <div className="iv-card-main">
+        <div className="iv-card-top">
+          <span className="iv-proj">{item.project}</span>
+          <span className="mono iv-pid">{item.pid}</span>
+          <span className="iv-type-tag" style={{ color: t.c, background: t.bg }}><Icon name={t.icon} size={13} color={t.c} />{t.label}</span>
+          <span className="iv-waited mono"><Icon name="clock" size={13} color="var(--text-400)" />{item.waited}</span>
+        </div>
+        <div className="ivx-why-line"><Icon name="git-pull-request-arrow" size={13} color={t.c} /><span className="ivx-why-label">{t.trigK}</span>{item.trigger}</div>
+        <div className="cl-qcard-foot">
+          <span className="cl-qcard-metric"><Icon name="target" size={13} color={t.c} />{item.metricK}<b className="mono" style={{ color: t.c }}>{item.metricV}</b></span>
+          <span className="cl-qcard-owner"><span className="pl-ava sm">{item.owner[0]}</span>负责人 {item.owner}</span>
+          <span className="iv-ai cl-qcard-ai"><Icon name="bot" size={13} color="var(--ai)" /><span className="iv-ai-label">AI 已撰写</span>{item.ai}</span>
+        </div>
+      </div>
+      <span className="pill" style={{ background: t.bg, color: t.c, flex: 'none', alignSelf: 'center' }}>待拍板</span>
+      <Icon name="chevron-right" size={18} color="var(--text-400)" />
+    </button>
+  );
+}
+
+/* ClosurePage — 结项审批外壳（组合级）。
+   状态：sel=null 显示跨项目待结项队列；sel 为某条时进入该项目结项详情。
+   详情按 sel.type 分发：normal → ClosureReview；force → ForceClose（b7_force.jsx）。 */
+function ClosurePage({ onNavigate, onEnterProject }) {
+  const [sel, setSel] = React.useState(null);   // null=队列；否则=某条结项详情
   const [loading, setLoading] = React.useState(true);
   const [toast, setToast] = React.useState(null);
-  const p = window.PROJECT_META || { name: '智能履约调度中台', pid: 'PRJ-2026-0137' };
-  const head = CL_HEAD[view];
 
-  React.useEffect(() => { const t = setTimeout(() => setLoading(false), 850); return () => clearTimeout(t); }, []);
+  React.useEffect(() => { setLoading(true); const t = setTimeout(() => setLoading(false), sel ? 700 : 600); return () => clearTimeout(t); }, [sel]);
   React.useEffect(() => { refreshIcons(); });
   const fireToast = (msg) => setToast({ msg });
 
+  /* ---- 详情：某项目的结项审核 / 强制结项 ---- */
+  if (sel) {
+    const t = CL_TYPE[sel.type];
+    return (
+      <div className="content-inner page-fade">
+        <Breadcrumb items={[{ label: '项目管理工作台', route: 'closure' }, { label: '结项审批', route: 'closure' }, { label: sel.project }]} />
+        <div className="page-head">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button className="cl-back" onClick={() => setSel(null)} title="返回结项审批队列"><Icon name="arrow-left" size={18} color="var(--text-500)" /></button>
+            <span className="page-head-ico" style={{ background: t.bg }}><Icon name={t.icon} size={22} color={t.c} /></span>
+            <div>
+              <h1 className="t-h1">{sel.project}</h1>
+              <div className="cl-head-sub"><span className="mono">{sel.pid}</span><span className="cl-head-dot" /><span style={{ color: t.c, fontWeight: 600 }}>{t.label}</span><span className="cl-head-dot" />负责人 {sel.owner}</div>
+            </div>
+          </div>
+          <div className="page-head-right">
+            <Button variant="text" icon="box" onClick={() => onEnterProject && onEnterProject({ name: sel.project, pid: sel.pid })}>进入项目工作区</Button>
+            <FeedbackEntry
+              context={{ scene: `结项审批 · ${t.label}`, did: `当前审核「${sel.project}」的${t.label}材料，AI 已撰写并等待管理层拍板`, ask: '结项材料、达成判定或处置建议' }}
+              onClick={() => fireToast('异步反馈入口已打开（演示）')} />
+          </div>
+        </div>
+
+        {sel.type === 'normal'
+          ? <ClosureReview loading={loading} onNavigate={onNavigate} onToast={fireToast} />
+          : <ForceClose loading={loading} onNavigate={onNavigate} onToast={fireToast} />}
+
+        <Toast toast={toast} onClose={() => setToast(null)} />
+      </div>
+    );
+  }
+
+  /* ---- 队列：跨项目待结项 ---- */
   return (
     <div className="content-inner page-fade">
-      <Breadcrumb items={[{ label: p.name }, { label: head.title }]} />
+      <Breadcrumb items={[{ label: '项目管理工作台' }, { label: '结项审批' }]} />
       <div className="page-head">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span className="page-head-ico" style={{ background: 'var(--closure-bg)' }}><Icon name="package-check" size={22} color="var(--closure)" /></span>
           <div>
-            <h1 className="t-h1">结项</h1>
+            <h1 className="t-h1">结项审批</h1>
           </div>
         </div>
         <div className="page-head-right">
           <FeedbackEntry
-            context={{ scene: '结项', did: `当前查看「${head.title}」，AI 自动发起结项并撰写材料，管理层审核拍板`, ask: '结项材料、审核决策或知识库沉淀' }}
+            context={{ scene: '项目管理工作台 · 结项审批', did: '正在跨项目审视 AI 发起的结项申请', ask: '结项材料、达成判定或强制结项的处置逻辑' }}
             onClick={() => fireToast('异步反馈入口已打开（演示）')} />
-          <div className="cl-switch">
-            {CL_VIEWS.map(v => (
-              <button key={v.id} className="cl-switch-btn" data-on={view === v.id} onClick={() => setView(v.id)}>
-                <Icon name={v.icon} size={15} color={view === v.id ? 'var(--text-900)' : 'var(--text-500)'} />{v.label}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
-      {view === 'review' && <ClosureReview loading={loading} onNavigate={onNavigate} onToast={fireToast} />}
-      {view === 'force' && <ForceClose loading={loading} onNavigate={onNavigate} onToast={fireToast} />}
-      {view === 'knowledge' && <KnowledgeBase loading={loading} onNavigate={onNavigate} onToast={fireToast} />}
+      {/* 生命周期闸门 · 概念条 */}
+      <div className="cl-model">
+        <span className="cl-model-ico"><Icon name="package-check" size={20} color="var(--closure)" /></span>
+        <div className="cl-model-main">
+          <div className="cl-model-t">结项是项目生命周期的终点闸门，由 AI 发起、管理层拍板</div>
+          <div className="cl-model-s">达成立项目标后 AI 自动发起<b>正常结项</b>；战略变化使某方向不再投入时被动触发<b>强制结项</b>。运行中的项目不展示结项入口——只有触发结项条件的项目才进入此队列。通过后成果沉淀进<button className="cl-inline-link" onClick={() => onNavigate && onNavigate('knowledge')}>知识库</button>，供新项目立项借鉴，形成良性循环。</div>
+        </div>
+        <div className="cl-model-stats">
+          <div className="cl-model-stat"><span className="cl-model-stat-v mono" style={{ color: 'var(--closure)' }}>{loading ? '—' : CL_QUEUE.length}</span><span className="cl-model-stat-k">待审批结项</span></div>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="iv-list">{[0, 1].map(i => (
+          <div className="iv-card" key={i} style={{ cursor: 'default' }}>
+            <span className="iv-card-bar" style={{ background: 'var(--divider)' }} />
+            <div className="iv-card-main">
+              <div style={{ display: 'flex', gap: 10 }}><Skel w={150} h={14} /><Skel w={100} h={14} /></div>
+              <Skel w="88%" h={13} style={{ marginTop: 12 }} />
+              <Skel w="62%" h={12} style={{ marginTop: 12 }} />
+            </div>
+          </div>
+        ))}</div>
+      ) : (
+        <>
+          <div className="cl-q-label"><span className="t-label-caps">待结项项目 · 跨项目聚合</span><span className="mono cl-q-count">{CL_QUEUE.length}</span></div>
+          <div className="iv-list">
+            {CL_QUEUE.map(item => <ClosureQueueCard key={item.id} item={item} onOpen={setSel} />)}
+          </div>
+        </>
+      )}
 
       <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }
 
-Object.assign(window, { ClosurePage, ClosureReview, CL_SECTIONS, CL_OUTPUTS, CL_GOALS });
+Object.assign(window, { ClosurePage, ClosureReview, CL_SECTIONS, CL_OUTPUTS, CL_GOALS, CL_QUEUE, CL_TYPE });

@@ -1,7 +1,12 @@
 /* ============================================================
    设计系统总览页 — designsystem.jsx
+   ------------------------------------------------------------
+   作用：批 0 设计规范样板页（路由 'design-system'）。集中展示色彩 / 字阶 / 间距圆角阴影 /
+         核心组件 / 图标 / 动效。纯展示页，供开发与设计对齐规范，不含业务逻辑。
+   所有 token 与原语都来自 components.jsx / tokens.css，此处只是取用展示。
    ============================================================ */
 
+/* DSSection · Swatch — 本页专用的分节容器与色板色块（仅规范页使用）。 */
 function DSSection({ id, num, title, desc, children }) {
   return (
     <section className="ds-sec" id={id}>
@@ -32,6 +37,9 @@ function Swatch({ name, hex, role, dark }) {
   );
 }
 
+/* DesignSystemPage — 设计系统页主体。由 06 个 DSSection 组成：
+   01 色彩 / 02 字体字阶 / 03 间距圆角阴影 / 04 核心组件 / 05 Icon / 06 动效与 Loading。
+   顶部常量（typeScale/spacing/radii/shadows/iconMap/motion）为展示用清单。 */
 function DesignSystemPage() {
   const typeScale = [
     ['Display', '32 / 40 · 600', 'display'],

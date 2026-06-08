@@ -1,9 +1,10 @@
 /* ============================================================
    批 8 · 页面 8.2 · 价值观对齐（组合级 · 治理）
-   当 AI 产出没有逻辑错、但不符合公司价值观 / 核心竞争力 / 风格时，
-   由人校正它使产出对齐。左·待对齐列表 → 右·对齐详情：
-   产出 vs 价值观偏差 + 对齐动作区（人给方向 → AI 处理态调整）+ 对齐历史。
-   该机制贯穿全程、不会停。
+   ------------------------------------------------------------
+   作用：当 AI 产出「没有逻辑错、但不符合公司价值观 / 核心竞争力 / 风格」时，由人校正使其对齐。
+         列表 → 研判档案：产出 vs 价值观偏差 + 对齐动作区（人给方向 → AI 处理态调整）+ 对齐历史。
+         该机制贯穿全程、不会停——每次人工校正被 AI 内化，下次同类产出自动对齐。
+   数据：VA_ITEMS（mock）；dim 分 value 价值观 / edge 核心竞争力 / style 风格。
    ============================================================ */
 
 const VA_DIM = {
@@ -62,7 +63,9 @@ const VA_ITEMS = [
 
 const VA_HIST_DOT = { info: 'var(--blue-primary)', ai: 'var(--ai)', success: 'var(--success)', warning: 'var(--warning)' };
 
-/* ---------- 研判档案（抽屉体） ---------- */
+/* ---------- 研判档案（抽屉体） ----------
+   VADossier：用 doc_kit 拼装出对齐研判档案：概要 / 产出 vs 偏差对照 / 对照公司条款 /
+     由人给方向的裁决 / 对齐历史。phase: idle 待研判 / running 调整中 / done 已对齐。 */
 function VADossier({ item, phase, picked, setPicked, onSubmit }) {
   const dim = VA_DIM[item.dim];
   const toggle = (c) => setPicked(p => p.includes(c) ? p.filter(x => x !== c) : [...p, c]);
@@ -137,7 +140,9 @@ function VADossier({ item, phase, picked, setPicked, onSubmit }) {
   );
 }
 
-/* ---------- 8.2 主页面 ---------- */
+/* ---------- 8.2 主页面 ----------
+   ValueAlignment：状态 items 偏差列表 / active 当前抽屉 / picked 已选对齐方向 / phase。
+   submit：下发对齐方向 → running 2.2s 后置 done，并把该项标记 _resolved（内化进技能库）。 */
 function ValueAlignment({ onNavigate }) {
   const [loading, setLoading] = React.useState(true);
   const [items, setItems] = React.useState(VA_ITEMS);

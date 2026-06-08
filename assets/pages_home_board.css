@@ -1,0 +1,155 @@
+/* ============================================================
+   项目总览看板 · 样式（pages_home_board.css）
+   命名空间 ob-（统计带） / obm-（项目集思维导图）
+   ============================================================ */
+
+/* ---------------- 顶部统计带 ---------------- */
+.ob-stats { display: grid; grid-template-columns: 1.05fr 1.15fr 1.7fr; gap: 16px; margin-bottom: 18px; }
+
+.ob-stat { background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-lg); padding: 18px 20px; display: flex; flex-direction: column; }
+.ob-stat-head { display: flex; align-items: center; gap: 8px; color: var(--text-500); font-size: 13px; font-weight: 500; }
+.ob-stat-head .ob-stat-ico { width: 28px; height: 28px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; flex: none; }
+.ob-stat-main { display: flex; align-items: baseline; gap: 10px; margin-top: 12px; }
+.ob-stat-flag { display: inline-flex; align-items: center; gap: 4px; align-self: center; margin-left: auto; font-size: 12px; font-weight: 600; color: var(--danger); background: var(--danger-bg); border-radius: var(--r-xs); padding: 2px 9px; }
+.ob-stat-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 32px; line-height: 36px; font-weight: 600; color: var(--text-900); letter-spacing: -.01em; }
+.ob-stat-unit { font-size: 13px; color: var(--text-400); }
+.ob-stat-split { display: flex; gap: 18px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--divider); }
+.ob-stat-sub { display: flex; flex-direction: column; gap: 2px; }
+.ob-stat-sub-k { font-size: 12px; color: var(--text-400); display: inline-flex; align-items: center; gap: 5px; }
+.ob-stat-sub-v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 16px; font-weight: 600; color: var(--text-900); }
+.ob-rel-dot { width: 7px; height: 7px; border-radius: 2px; flex: none; }
+
+/* 统计卡底部：比例条 + 图例（底边对齐） */
+.ob-stat-foot { margin-top: auto; padding-top: 16px; }
+.ob-mini-bar { display: flex; gap: 2px; height: 8px; border-radius: 999px; overflow: hidden; background: var(--divider); }
+.ob-mini-bar i { height: 100%; border-radius: 2px; transition: width var(--dur-slow) var(--ease-out); min-width: 2px; }
+.ob-stat-legend { display: flex; align-items: center; gap: 8px 18px; flex-wrap: wrap; margin-top: 12px; }
+.ob-stat-legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-500); }
+.ob-stat-legend b { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; font-weight: 600; color: var(--text-900); margin-left: 1px; }
+
+/* 简化状态分布（三类桶） */
+.ob-stat-buckets { display: flex; gap: 10px; margin-top: 16px; }
+.ob-bk { flex: 1; display: flex; align-items: center; gap: 9px; }
+.ob-bk-ico { width: 30px; height: 30px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; flex: none; }
+.ob-bk-main { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+.ob-bk-n { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 21px; font-weight: 600; }
+.ob-bk-lbl { font-size: 11.5px; color: var(--text-400); white-space: nowrap; }
+
+/* AI 占比面板 */
+.ob-ai { background: linear-gradient(180deg, #fff 0%, var(--ai-soft) 220%); border: 1px solid var(--blue-border); border-radius: var(--r-lg); padding: 18px 22px; display: flex; align-items: center; gap: 22px; position: relative; overflow: hidden; }
+.ob-ai::after { content: ""; position: absolute; right: -40px; top: -40px; width: 140px; height: 140px; border-radius: 999px; background: radial-gradient(circle, rgba(14,165,233,.12), transparent 70%); }
+.ob-ai-ring { position: relative; flex: none; }
+.ob-ai-ring-cap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ob-ai-ring-pct { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 600; color: var(--ai); line-height: 1; }
+.ob-ai-ring-lbl { font-size: 10px; color: var(--text-400); margin-top: 2px; }
+.ob-ai-body { flex: 1; min-width: 0; z-index: 1; }
+.ob-ai-title { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; color: var(--text-900); white-space: nowrap; }
+.ob-live { position: absolute; top: 16px; right: 18px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--ai); background: #fff; border: 1px solid var(--blue-border); border-radius: 999px; padding: 1px 8px; }
+.ob-ai-live-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--ai); animation: ai-breathe 2s infinite; }
+.ob-ai-bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; margin-top: 14px; background: var(--divider); }
+.ob-ai-bar-seg { height: 100%; transition: width var(--dur-slow) var(--ease-out); }
+.ob-ai-legend { display: flex; gap: 20px; margin-top: 12px; }
+.ob-ai-leg { display: flex; align-items: center; gap: 8px; }
+.ob-ai-leg-dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.ob-ai-leg-k { font-size: 12px; color: var(--text-500); }
+.ob-ai-leg-v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 600; color: var(--text-900); }
+.ob-ai-leg-v small { font-size: 11px; color: var(--text-400); font-weight: 500; margin-left: 3px; }
+
+/* ---------------- 思维导图工具条 ---------------- */
+.obm-toolbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+
+/* 项目集下拉选择器 */
+.obm-pf-select-wrap { display: inline-flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-md); padding: 0 10px 0 12px; height: 38px; cursor: pointer; transition: border-color var(--dur-fast); }
+.obm-pf-select-wrap:hover { border-color: var(--border-300); }
+.obm-pf-select-wrap:focus-within { border-color: var(--blue-primary); box-shadow: 0 0 0 3px var(--blue-tint); }
+.obm-pf-select-lab { font-size: 12px; color: var(--text-400); font-weight: 500; flex: none; }
+.obm-pf-dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.obm-pf-select { appearance: none; -webkit-appearance: none; border: none; background: transparent; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--text-900); cursor: pointer; padding: 0 2px; outline: none; }
+.obm-pf-select-wrap svg { flex: none; pointer-events: none; }
+
+/* 全屏查看按钮 */
+.obm-fs-btn { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-md); font-size: 13px; font-weight: 600; color: var(--text-700); cursor: pointer; transition: all var(--dur-fast); }
+.obm-fs-btn:hover { border-color: var(--blue-border); background: var(--blue-tint); color: var(--blue-deep); }
+
+/* 画布容器 + 右上角全屏按钮 */
+.obm-canvas { position: relative; }
+.obm-expand { position: absolute; top: 12px; right: 16px; z-index: 6; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px; background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-md); box-shadow: var(--shadow-sm); font-size: 12.5px; font-weight: 600; color: var(--text-700); cursor: pointer; transition: all var(--dur-fast); }
+.obm-expand:hover { border-color: var(--blue-border); background: var(--blue-tint); color: var(--blue-deep); }
+
+.obm-legend { display: flex; align-items: center; gap: 14px; margin-left: auto; flex-wrap: wrap; }
+.obm-legend-item { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-500); }
+.obm-legend-sep { width: 1px; height: 13px; background: var(--border-300); }
+
+.obm-hint { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; color: var(--text-500); line-height: 1.5; background: var(--canvas); border: 1px solid var(--divider); border-radius: var(--r-md); padding: 10px 14px; margin-bottom: 14px; }
+.obm-hint svg { flex: none; margin-top: 2px; }
+
+/* ---------------- 思维导图主体 ---------------- */
+.obm-wrap { max-height: min(620px, calc(100vh - 360px)); overflow: auto; border: 1px solid var(--border-200); border-radius: var(--r-lg); background:
+    radial-gradient(circle at 1px 1px, var(--border-200) 1px, transparent 0) 0 0 / 22px 22px,
+    #fff; padding: 28px 30px; }
+
+/* ---------------- 全屏查看 ---------------- */
+.obm-fs { position: fixed; inset: 0; z-index: 300; background: var(--canvas); display: flex; flex-direction: column; animation: obm-fs-in var(--dur-base) var(--ease-out); }
+@keyframes obm-fs-in { from { opacity: 0; } to { opacity: 1; } }
+.obm-fs-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 22px; background: #fff; border-bottom: 1px solid var(--border-200); flex: none; }
+.obm-fs-title { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; color: var(--text-900); }
+.obm-fs-close { margin-left: auto; width: 38px; height: 38px; border-radius: var(--r-md); border: 1px solid var(--border-200); background: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; transition: all var(--dur-fast); }
+.obm-fs-close:hover { background: var(--danger-bg); border-color: #F4C7C8; }
+.obm-fs .obm-wrap, .obm-wrap--fs { flex: 1; max-height: none; border: none; border-radius: 0; }
+.obm-fs .obm-canvas { flex: 1; min-height: 0; display: flex; }
+
+/* 节点：卡片 + 右侧子树 */
+.obm-node { display: flex; align-items: center; }
+.obm-card, .obm-root-card { flex: none; }
+
+/* 项目卡 */
+.obm-card { position: relative; display: block; text-align: left; width: 256px; background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-md); padding: 11px 13px 11px 16px; cursor: pointer; overflow: hidden; transition: box-shadow var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast); }
+.obm-card:hover { border-color: var(--border-300); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.obm-card-rail { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+.obm-card-head { display: flex; align-items: center; gap: 7px; }
+.obm-kind { font-size: 11px; font-weight: 600; color: var(--text-700); background: var(--neutral-bg); border-radius: var(--r-xs); padding: 1px 7px; flex: none; }
+.obm-id { font-size: 11px; color: var(--text-400); }
+.obm-kapian { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: var(--danger); background: var(--danger-bg); border-radius: var(--r-xs); padding: 1px 6px; margin-left: auto; }
+.obm-card-title { display: flex; align-items: center; gap: 7px; font-size: 14px; line-height: 19px; font-weight: 600; color: var(--text-900); margin-top: 8px; }
+.obm-health { width: 7px; height: 7px; border-radius: 999px; flex: none; }
+
+/* 目标承接行 */
+.obm-goal { display: flex; align-items: center; gap: 6px; margin-top: 9px; padding-top: 9px; border-top: 1px dashed var(--divider); font-size: 12px; color: var(--text-500); min-width: 0; }
+.obm-goal svg { flex: none; }
+.obm-goal-kind { font-size: 10.5px; font-weight: 600; border-radius: var(--r-xs); padding: 1px 6px; flex: none; white-space: nowrap; }
+.obm-goal-txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.obm-card-foot { display: flex; align-items: center; gap: 7px; margin-top: 11px; }
+.obm-bucket { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 8px; flex: none; }
+.obm-mode { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 8px; flex: none; }
+.obm-card[data-mode="ai"] .obm-mode { background: var(--ai-soft); color: var(--ai); }
+.obm-prog { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; margin-left: auto; }
+
+/* 项目集根节点卡 */
+.obm-root-card { width: 232px; border: 1.5px solid; border-radius: var(--r-lg); padding: 16px 18px; }
+.obm-root-top { display: flex; align-items: center; gap: 11px; }
+.obm-root-badge { width: 34px; height: 34px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; flex: none; }
+.obm-root-kind { font-size: 11px; font-weight: 600; color: var(--text-500); letter-spacing: .04em; }
+.obm-root-name { font-size: 16px; font-weight: 700; color: var(--text-900); line-height: 20px; margin-top: 1px; }
+.obm-root-north { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; margin-top: 13px; }
+.obm-root-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; padding-top: 12px; border-top: 1px solid color-mix(in oklch, currentColor 14%, white); }
+.obm-root-meta span { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-500); white-space: nowrap; }
+
+/* ---------------- 连接线（横向树） ---------------- */
+.obm-kids { display: flex; flex-direction: column; justify-content: center; margin-left: 36px; position: relative; }
+.obm-kids::before { content: ""; position: absolute; left: -36px; top: 50%; width: 36px; height: 2px; background: #AEB8C8; transform: translateY(-1px); }
+.obm-subtree { position: relative; padding: 9px 0 9px 36px; }
+.obm-subtree::before { content: ""; position: absolute; left: 0; top: 50%; width: 36px; height: 2px; background: #AEB8C8; transform: translateY(-1px); }
+.obm-subtree::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #AEB8C8; }
+.obm-subtree:first-child::after { top: 50%; }
+.obm-subtree:last-child::after { bottom: 50%; }
+.obm-subtree:only-child::after { display: none; }
+
+@media (max-width: 1180px) {
+  .ob-stats { grid-template-columns: 1fr 1fr; }
+  .ob-ai { grid-column: 1 / -1; }
+}
+@media (max-width: 720px) {
+  .ob-stats { grid-template-columns: 1fr; }
+  .ob-stat-buckets { gap: 6px; }
+}

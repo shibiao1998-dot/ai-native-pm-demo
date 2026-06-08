@@ -1,9 +1,16 @@
 /* ============================================================
    全局外壳 — shell.jsx
-   顶栏 + 两级导航 + 面包屑 + ⌘K 命令面板 + AI 工作流弹层
+   ------------------------------------------------------------
+   作用：workbench / project 两个模式下的外壳 UI：
+         顶栏 TopBar + 两级侧边导航 Sidebar + 面包屑 Breadcrumb +
+         ⌘K 命令面板 CommandPalette + AI 工作流弹层 AIWorkflow。
+   数据来源：本文件里的 NAV_*、SAMPLE_PROJECT、SEARCH_DATA、AI_TASKS 均为 mock，
+             真实开发需接后端（菜单权限、全局搜索、AI 任务状态）。
    ============================================================ */
 
-/* ---------- 导航数据 ---------- */
+/* ---------- 导航数据（菜单配置，驱动侧边栏渲染） ----------
+   每项：{ id 路由id, label 显示名, icon lucide图标名, badge? 右侧计数徽章 }
+   id 需与 app.jsx 路由分发表的 route 一致，点击后调 onNavigate(id) 切页。 */
 const NAV_PORTFOLIO = [
 { group: '项目管理工作台', items: [
   { id: 'home', label: '项目总览', icon: 'layout-dashboard' },
@@ -13,6 +20,7 @@ const NAV_PORTFOLIO = [
   { id: 'pool', label: '项目备选池', icon: 'inbox' },
   { id: 'charter', label: '自动立项', icon: 'clipboard-check' },
   { id: 'intervene', label: '介入工作台', icon: 'list-checks', badge: 6 },
+  { id: 'closure', label: '结项审批', icon: 'package-check', badge: 2 },
   { id: 'cost-board', label: '算力总看板', icon: 'receipt' }]
 },
 { group: '治理', items: [
@@ -29,16 +37,20 @@ const NAV_PROJECT = [
   { id: 'p-intervene', label: '介入工作台', icon: 'hand' },
   { id: 'p-task', label: '执行事务', icon: 'square-check-big' },
   { id: 'p-accept', label: '验收与闭环', icon: 'circle-check' },
-  { id: 'p-risk', label: '风险与卡点', icon: 'alert-triangle' },
-  { id: 'p-close', label: '结项', icon: 'package-check' },
+  { id: 'p-risk', label: '风险事件', icon: 'alert-triangle' },
   { id: 'p-cost', label: '项目费用看板', icon: 'gauge' }]
 }];
 
 
-const SAMPLE_PROJECT = { name: '智能履约调度中台', id: 'PRJ-2026-0137' };
+const SAMPLE_PROJECT = { name: '智能履约调度中台', id: 'PRJ-2026-0137' };   // 默认示例项目（mock）
 
-/* ---------- 侧边导航（按 mode 分流：workbench = 项目管理工作台；project = 项目专属工作区） ---------- */
+/* ---------- 侧边导航 Sidebar ----------
+   作用：左侧两级导航。按 mode 分流渲染两套完全不同的菜单：
+         · mode='project'   → 只显示项目专属导航 NAV_PROJECT，顶部加一张项目身份卡
+         · 其余（workbench） → 显示全局菜单 NAV_PORTFOLIO（工作台 + 治理）
+   props：current 当前选中路由；onNavigate 点菜单回调；collapsed 是否收起；mode 决定菜单集；project 项目信息 */
 function Sidebar({ current, onNavigate, collapsed, mode = 'workbench', onExitProject, project = SAMPLE_PROJECT }) {
+  // renderItem：渲染单个菜单项。active 决定高亮 + 图标色；collapsed 时只示图标、badge 退化为小点。
   const renderItem = (it, disabled) => {
     const active = current === it.id;
     return (
@@ -98,7 +110,15 @@ function Sidebar({ current, onNavigate, collapsed, mode = 'workbench', onExitPro
 
 }
 
-/* ---------- 顶栏 ---------- */
+/* ---------- 顶栏 TopBar ----------
+   作用：顶部全局栏。包含：导航收起按钮、品牌（点回总入口）、返回总入口、
+         搜索入口（开 ⌘K）、AI 状态灯、今日算力花费、通知、角色、头像。
+   关键交互：
+     · wsOpen/wsQ：项目切换下拉的开关与搜索词（wsResults 实时过滤 PROJECTS）。
+     · 「今日算力」按钮：先写 window.__cbRange='today'，再调 __crumbNav('cost-board')
+        —— 跳转到算力总看板并默认定位到「今日」区间。
+     · onOpenAI 带 e.stopPropagation()（在 app.jsx 传入），避免被「点空白关闭」逻辑误伤。
+   props：mode 区分是否项目内；aiBusy 控制 AI 灯闪动；onGoPortal/onGoWorkbench/onEnterProject 各级跳转。 */
 function TopBar({ collapsed, onToggleNav, mode, onGoPortal, onGoWorkbench, onEnterProject, onOpenSearch, aiBusy, onOpenAI, project = SAMPLE_PROJECT }) {
   const [wsOpen, setWsOpen] = React.useState(false);
   const [wsQ, setWsQ] = React.useState('');
@@ -156,15 +176,19 @@ function TopBar({ collapsed, onToggleNav, mode, onGoPortal, onGoWorkbench, onEnt
 
 }
 
-/* ---------- 面包屑 ---------- */
+/* ---------- 面包屑 Breadcrumb ----------
+   作用：页顶「你在哪里」路径，除最后一级外每级可点跳回。
+   实现逻辑：CRUMB_ROUTE 是「面包屑文字 → 路由 id」的反查表（同一 id 可有多个别名）。
+     crumbRoute() 决定每一级点击去哪：mono（项目编号）或其后跟编号的项目名 → 项目主页；
+     其余查 CRUMB_ROUTE。点击通过 window.__crumbNav(route) 发起（见 app.jsx）。 */
 const CRUMB_ROUTE = {
   '项目管理工作台': 'home', '项目总览': 'home', '项目列表': 'projects', '全部项目': 'projects',
   '战略意图识别': 'strategy', '管理者意图': 'mgr-intent', '管理者意图录入': 'mgr-intent',
-  '项目备选池': 'pool', '自动立项': 'charter', '介入工作台': 'intervene', '算力总看板': 'cost-board',
+  '项目备选池': 'pool', '自动立项': 'charter', '介入工作台': 'intervene', '结项审批': 'closure', '算力总看板': 'cost-board',
   'AI 员工': 'ai-staff', '价值观对齐': 'align', '知识库': 'knowledge', '规则与留痕': 'rules', '权限': 'perm',
   '项目主页': 'p-home', '目标树': 'p-tree', '目标书': 'p-tree', '目标树 / 目标书': 'p-tree', '介入工作台': 'p-intervene',
   '执行事务': 'p-task', '事务看板': 'p-task', '验收与闭环': 'p-accept', '逐级验收报告': 'p-accept',
-  '风险与卡点': 'p-risk', '结项': 'p-close', '结项审核': 'p-close', '项目费用看板': 'p-cost',
+  '风险事件': 'p-risk', '结项': 'closure', '结项审核': 'closure', '结项审批': 'closure', '项目费用看板': 'p-cost',
 };
 function crumbRoute(item, i, items) {
   if (item.route) return item.route;
@@ -192,7 +216,11 @@ function Breadcrumb({ items }) {
 
 }
 
-/* ---------- ⌘K 命令面板 ---------- */
+/* ---------- ⌘K 命令面板 CommandPalette ----------
+   作用：全局搜索 / 命令面板（顶栏搜索入口或 ⌘K 唤起）。
+   UI 状态机：由父级 open 控制；open 变 true 时清空输入并 30ms 后自动聚焦输入框；
+     Esc 键或点遮罩关闭。输入 q 后实时过滤 SEARCH_DATA 并按 cat 分组。
+   数据来源：SEARCH_DATA 为 mock 搜索索引，真实开发需接后端搜索接口。 */
 const SEARCH_DATA = [
 { cat: '项目', icon: 'box', label: '智能履约调度中台', sub: 'PRJ-2026-0137 · 项目管理工作台 › 项目', mono: 'PRJ-2026-0137' },
 { cat: '项目', icon: 'box', label: '客服知识中枢重构', sub: 'PRJ-2026-0129 · 项目管理工作台 › 项目', mono: 'PRJ-2026-0129' },
@@ -250,7 +278,11 @@ function CommandPalette({ open, onClose }) {
 
 }
 
-/* ---------- AI 工作流弹层 ---------- */
+/* ---------- AI 工作流弹层 AIWorkflow ----------
+   作用：点顶栏 AI 状态灯后弹出的浮层，列出当前所有 AI 任务及进度。
+   数据来源：AI_TASKS 为 mock 初始任务；tasks 由 app.jsx 传入（与顶栏灯共享同一状态）。
+     每项：{ proj 项目ID, label 任务名, step 进度文案, state 'run'|'done' }。
+   state='run' 时图标转圈（spin），'done' 时变绿勾。全部完成 → 底部文案变为「已回空闲」。 */
 const AI_TASKS = [
 { proj: 'PRJ-2026-0137', label: '拆解阶段目标', step: '第 3/5 步', state: 'run' },
 { proj: 'PRJ-2026-0129', label: '逐环审核 · 展示环', step: '审核中', state: 'run' },

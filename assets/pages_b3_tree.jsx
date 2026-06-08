@@ -1,9 +1,15 @@
 /* ============================================================
    页面 3.2 · 目标树  +  3.3 · 目标书（项目专属 · 同源切换）
-   理想化状态 → 中短期目标 → 阶段目标 → 周目标 → 执行事务
-   根基三要素（理想化状态 ∥ 核心价值 ∥ 目标用户）并行编写。
+   ------------------------------------------------------------
+   作用：项目的五层目标体系可视化。本文件含两种呈现：
+         · 思维导图画布（GoalTreeBook，当前主用）— 只读展示当前执行路径的活跃链路
+         · 树/侧栏/目标书（TreeNode/TreeSidebar/GoalBook）— 早期结构，保留备用
+   层级：理想化状态 → 中短期目标 → 阶段目标 → 周目标 → 执行事务。
+         根基三要素（理想化状态 ∥ 核心价值 ∥ 目标用户）并行编写。
+   数据：GOAL_TREE 为本文件 mock 树（导出供项目主页看板复用）；思维导图另从 HOME_* 重建。
    ============================================================ */
 
+/* 节点状态 → 视觉映射（五态：编写中/审核中/已展示/卡点/已验收）。 */
 const NODE_STATUS = {
   drafting: { label: '编写中', tone: 'neutral', icon: 'pencil-line', c: 'var(--text-500)', bg: 'var(--neutral-bg)' },
   review:   { label: '审核中', tone: 'ai', icon: 'loader-2', c: 'var(--ai)', bg: 'var(--ai-soft)', spin: true },
@@ -22,7 +28,10 @@ const NODE_LEVEL = {
   task:  { label: '执行事务', icon: 'square-check-big', short: '事务' },
 };
 
-/* ---------- 目标树数据 ---------- */
+/* ---------- 目标树数据 ----------
+   树形结构：每节点含 level 层级 / status 状态 / progress 进度 / ai 负责 Agent /
+   def 定义 / rel 关联节点 / audit 审核记录 / kapian 卡点（若有）/ children 子节点。
+   ⚠ mock 数据：真实开发换为后端目标树接口。 */
 const GOAL_TREE = [
   { id: 'ideal', level: 'ideal', title: '履约调度全面智能化，时效与成本双优', status: 'shown', progress: 72,
     ai: '调度域 · 总控', def: '项目达成后的稳定终态：履约调度由系统自驱，时效稳定 < 4h、单均成本下降 ≥ 15%、异常自愈率 ≥ 90%。是向下拆解的总锚点。',
@@ -114,14 +123,16 @@ const GOAL_TREE = [
     audit: [ { act: '细化一线人员诉求', by: 'AI · 战略对齐', date: '05-22', tone: 'info' } ] },
 ];
 
-/* 扁平化索引 */
+/* 扁平化索引：递归把树展平为 NODE_MAP[id]→节点，供关联跳转、反查。 */
 const NODE_MAP = {};
 (function flatten(nodes) { nodes.forEach(n => { NODE_MAP[n.id] = n; if (n.children) flatten(n.children); }); })(GOAL_TREE);
 
 const AUDIT_TONE = { info: 'var(--info)', success: 'var(--success)', warning: 'var(--warning)', neutral: 'var(--text-400)' };
 const PROG_COLOR = (s) => s === 'kapian' ? 'var(--warning)' : s === 'accepted' ? 'var(--success)' : s === 'review' ? 'var(--ai)' : 'var(--blue-primary)';
 
-/* ---------- 树节点 ---------- */
+/* ---------- 树节点（递归） ----------
+   TreeNode：可展折的树行。hasKids 决定是否显示展折按钮；isOpen 默认展开（expanded[id]!==false）。
+   交互：onToggle 展折；onSelect 选中（高亮并在侧栏显详情）。 */
 function TreeNode({ node, depth, expanded, onToggle, selected, onSelect }) {
   const lvl = NODE_LEVEL[node.level];
   const st = NODE_STATUS[node.status];
@@ -159,7 +170,10 @@ function TreeNode({ node, depth, expanded, onToggle, selected, onSelect }) {
   );
 }
 
-/* ---------- 详情侧栏 ---------- */
+/* ---------- 详情侧栏 ----------
+   TreeSidebar：选中节点的详情（定义/进度/关联/审核记录）。
+   交互：有卡点时显「卡点处置」+（AI 模式下）「介入工作台」按钮；「进入逐环审核」跳复盘。
+   未选中时显示空态提示。 */
 function TreeSidebar({ node, onSelect, onJumpKapian, onEnterReview, onEnterKapian, aiMode }) {
   if (!node) {
     return (
@@ -248,7 +262,9 @@ function TreeSidebar({ node, onSelect, onJumpKapian, onEnterReview, onEnterKapia
   );
 }
 
-/* ---------- 目标书 ---------- */
+/* ---------- 目标书 ----------
+   GoalBook：目标树的文档化互补形态（大纲 + 文档正文 + 双向链接），与树同源。
+   交互：点大纲/双向链 scrollTo 定位到对应元素并高亮；selected 变化时闪烁提醒（flash）。 */
 function GoalBook({ selected, onSelect }) {
   const flashRef = React.useRef(null);
   React.useEffect(() => {
@@ -359,76 +375,196 @@ function GoalBook({ selected, onSelect }) {
   );
 }
 
-/* ---------- 目标树主页面（含 树↔书 同源切换） ---------- */
-/* ============================================================
-   目标树（重构）· 当前执行路径的实时只读视图
+/* ---------- 目标树主页面（含 树↔书 同源切换） ----------
+   目标树（重构）· 当前执行路径的实时只读视图。
    仅展示「当前中短期版本 → 执行中阶段 → 当前周 → 当前事务」的活跃链路。
-   与项目主页同源（HOME_*）；纯展示，详情点开看；操作剥离至接入工作台。
-   ============================================================ */
+   与项目主页同源（HOME_*）；纯展示，详情点开看；操作剥离至介入工作台。 */
+/* 五级层级元信息：理想化状态 → 中短期目标 → 阶段结项目标 → 周计划 → 事务 */
+const MM_LV = {
+  ideal: { tag: '理想化状态', c: '#1E3A8A', icon: 'target' },
+  mid:   { tag: '中短期目标', c: '#2563EB', icon: 'flag' },
+  phase: { tag: '阶段结项目标', c: '#1D4ED8', icon: 'milestone' },
+  week:  { tag: '周计划', c: '#0E7490', icon: 'calendar-range' },
+  task:  { tag: '事务', c: '#475569', icon: 'square-check-big' },
+};
+/* 进度 → 状态（执行中 / 已完成 / 已验收 / 未开始） */
+function mmStatus(node) {
+  if (node.status) {
+    const map = { draft: '未开始', run: '执行中', kapian: '卡点', accepted: '已验收' };
+    const c = window.HOME_STATUS[node.status] ? window.HOME_STATUS[node.status].c : 'var(--text-400)';
+    return { label: map[node.status] || node.status, c };
+  }
+  const pr = node.prog || 0;
+  if (pr >= 100) return { label: '已验收', c: 'var(--success)' };
+  if (pr > 0) return { label: '执行中', c: 'var(--ai)' };
+  return { label: '未开始', c: 'var(--text-400)' };
+}
+
+/* GoalTreeBook — 目标树思维导图页主体。
+   数据构建：useMemo 从 HOME_IDEAL/MID/PHASE/WEEK 重建一棵完整五级树（root→ideal→mid→phase→week→task），
+     同时产出 edges（连线关系）。IDEAL_MIDS 是「理想态→中短期」的归属映射。
+   关键交互：
+     · open(node)：点节点 → 按层级组装 detail 并开详情抽屉（复用 GoalDetail）。
+     · computeLinks：基于真实 DOM 测量每个节点位置，算出 SVG 贝塞尔连线的起止点（随布局/缩放/resize 重算）。
+     · 拖拽平移：onDown/onMove/onUp 记录指针位移改 scrollLeft/Top；guard() 防止「拖动中误触发点击」。
+     · centerOnRoot：首次加载把根节点居中。 */
 function GoalTreeBook({ project, onNavigate }) {
   const [loading, setLoading] = React.useState(true);
   const [detail, setDetail] = React.useState(null);
+  const [sel, setSel] = React.useState(null);
   const p = { ...window.PROJECT_META, ...(project || {}) };
   const GoalDetail = window.GoalDetail;
+
+  const canvasRef = React.useRef(null);
+  const innerRef = React.useRef(null);
+  const nodeRefs = React.useRef({});
+  const [links, setLinks] = React.useState([]);
 
   React.useEffect(() => { const t = setTimeout(() => setLoading(false), 700); return () => clearTimeout(t); }, []);
   React.useEffect(() => { refreshIcons(); });
 
-  // —— 当前执行路径（实时快照）——
-  const quarter = '1.0', month = '1.2', weekLabel = '2026年06月第1周';
+  // —— 仅展示当前版本，构建完整五级树：项目 → 理想化状态 → 中短期 → 阶段结项 → 周计划 → 事务 ——
+  const quarter = '1.0';
   const qv = window.MID_VERSIONS.find(v => v.id === quarter) || window.MID_VERSIONS[0];
-  const mv = window.MONTH_OF(month) || {};
-  const ideal = (window.HOME_IDEAL.items[0]) || {};
-  const midGoals = window.HOME_MID.byVer[quarter] || [];
-  const phaseGoals = (window.HOME_PHASE.byVer[month] || { items: [] }).items;
-  const weekPlans = (window.HOME_WEEK.byWeek[weekLabel] || { items: [] }).items;
-  const tasks = weekPlans.flatMap(pl => (pl.tasks || []).map(t => ({ ...t, from: pl.title })));
-  const sOf = (pr) => pr >= 100 ? 'accepted' : pr > 0 ? 'run' : 'draft';
 
-  const open = (d) => setDetail(d);
-  const TIERS = [
-    { level: 'ideal', ctx: '项目根基 · 总锚点',
-      cards: [{ key: 'idl', title: ideal.text, imp: ideal.imp, prog: ideal.prog,
-        d: { level: 'ideal', title: ideal.text, imp: ideal.imp, prog: ideal.prog, def: ideal.def,
-          meta: [{ k: '所属分类', v: ideal.cat }], note: '理想化状态是向下拆解中短期 / 阶段 / 周目标的总锚点。' } }] },
-    { level: 'mid', ctx: `v${quarter} · ${qv.q} · ${qv.range}`,
-      cards: midGoals.map(it => ({ key: it.id, title: it.title, imp: it.imp, prog: it.prog,
-        d: { level: 'mid', title: it.title, imp: it.imp, prog: it.prog, def: it.def,
-          meta: [{ k: '时间周期', v: qv.range, mono: true }, { k: '版本', v: 'v' + quarter, mono: true }, { k: '负责人', v: it.owner }],
-          up: it.up, down: it.down } })) },
-    { level: 'phase', ctx: `v${month} · ${mv.label} · 执行中`,
-      cards: phaseGoals.map(it => ({ key: it.id, title: it.title, imp: it.imp, prog: it.prog, status: it.status,
-        d: { level: 'phase', title: it.title, imp: it.imp, prog: it.prog, def: it.title, status: it.status, kapian: it.kapian,
-          meta: [{ k: '时间周期', v: mv.range, mono: true }, { k: '负责人', v: it.owner }, { k: '版本', v: 'v' + month, mono: true }],
-          up: it.up, down: it.down } })) },
-    { level: 'week', ctx: `${weekLabel} · 当前周`,
-      cards: weekPlans.map(it => ({ key: it.id, title: it.title, imp: it.imp, prog: it.prog, status: it.status,
-        d: { level: 'week', title: it.title, imp: it.imp, prog: it.prog, def: it.steps, status: it.status,
-          meta: [{ k: '所属周', v: weekLabel }, { k: '承接阶段', v: 'v' + it.source.ver, mono: true }],
-          up: it.up, tasks: it.tasks } })) },
-    { level: 'task', ctx: '当前事务 · 实时',
-      cards: tasks.map(t => ({ key: t.id, title: t.title, prog: t.prog, status: t.status,
-        d: { level: 'task', title: t.title, prog: t.prog, status: t.status,
-          meta: [{ k: '执行 AI', v: t.ai }, { k: '承接周计划', v: t.from }, { k: '绑定状态', v: t.bound ? '已绑定' : '待绑定' }] } })) },
-  ];
+  const { rootNode, edges } = React.useMemo(() => {
+    const ideals = window.HOME_IDEAL.items;
+    const mids = window.HOME_MID.byVer[quarter] || [];
+    const midById = {}; mids.forEach(m => (midById[m.id] = m));
+    // 理想化状态 → 中短期目标 归属
+    const IDEAL_MIDS = { 'idl-1': ['mid-c'], 'idl-2': ['mid-a'], 'idl-3': ['mid-b'], 'idl-4': ['mid-d'], 'idl-5': [], 'idl-6': [], 'idl-7': [] };
+    // 全局索引：阶段结项 / 周计划
+    const phaseIndex = {}; Object.values(window.HOME_PHASE.byVer).forEach(v => v.items.forEach(ph => (phaseIndex[ph.id] = ph)));
+    const weekIndex = {}; Object.values(window.HOME_WEEK.byWeek).forEach(v => v.items.forEach(w => (weekIndex[w.id] = w)));
 
-  const TierCard = ({ c, level }) => {
-    const lv = window.HOME_LEVEL[level];
-    const st = c.status ? window.HOME_STATUS[c.status] : (c.prog != null ? window.HOME_STATUS[sOf(c.prog)] : null);
+    const buildTask = (t, pk) => ({ key: pk + '/t-' + t.id, level: 'task', title: t.title, prog: t.prog, status: t.status, ai: t.ai, bound: t.bound, raw: t, children: [] });
+    const buildWeek = (w, pk) => { const key = pk + '/w-' + w.id; return { key, level: 'week', title: w.title, imp: w.imp, prog: w.prog, status: w.status, raw: w, children: (w.tasks || []).map(t => buildTask(t, key)) }; };
+    const buildPhase = (ph, pk) => { const key = pk + '/p-' + ph.id; return { key, level: 'phase', title: ph.title, imp: ph.imp, prog: ph.prog, status: ph.status, raw: ph, children: (ph.down || []).map(d => weekIndex[d.id]).filter(Boolean).map(w => buildWeek(w, key)) }; };
+    const buildMid = (m, pk) => { const key = pk + '/m-' + m.id; return { key, level: 'mid', title: m.title, imp: m.imp, prog: m.prog, raw: m, children: (m.down || []).map(d => phaseIndex[d.id]).filter(Boolean).map(ph => buildPhase(ph, key)) }; };
+    const buildIdeal = (idl) => { const key = 'i-' + idl.id; return { key, level: 'ideal', title: idl.text, imp: idl.imp, prog: idl.prog, raw: idl, children: (IDEAL_MIDS[idl.id] || []).map(id => midById[id]).filter(Boolean).map(m => buildMid(m, key)) }; };
+
+    const root = { key: 'root', level: 'root', children: ideals.map(buildIdeal) };
+    const eds = [];
+    const walk = (n) => n.children.forEach(c => { eds.push({ from: n.key, to: c.key, level: c.level }); walk(c); });
+    walk(root);
+    return { rootNode: root, edges: eds };
+  }, [quarter]);
+
+  const open = (node) => {
+    setSel(node.key);
+    const r = node.raw;
+    if (node.level === 'ideal') {
+      setDetail({ level: 'ideal', title: r.text, imp: r.imp, prog: r.prog, def: r.def,
+        meta: [{ k: '所属分类', v: r.cat }],
+        note: '理想化状态是层层向下拆解（中短期目标 → 阶段结项目标 → 周计划 → 事务）的总锚点。',
+        down: node.children.map(c => ({ level: 'mid', title: c.title })) });
+    } else if (node.level === 'mid') {
+      setDetail({ level: 'mid', title: r.title, imp: r.imp, prog: r.prog, def: r.def,
+        meta: [{ k: '时间周期', v: qv.range, mono: true }, { k: '当前版本', v: 'v' + quarter, mono: true }, { k: '负责人', v: r.owner }],
+        up: r.up, down: r.down });
+    } else if (node.level === 'phase') {
+      setDetail({ level: 'phase', title: r.title, imp: r.imp, prog: r.prog, def: r.title, status: r.status, kapian: r.kapian,
+        meta: [{ k: '来源中短期', v: 'v' + r.source.ver, mono: true }, { k: '负责人', v: r.owner }],
+        up: r.up, down: r.down });
+    } else if (node.level === 'week') {
+      setDetail({ level: 'week', title: r.title, imp: r.imp, prog: r.prog, def: r.steps, status: r.status,
+        meta: [{ k: '承接阶段', v: 'v' + r.source.ver, mono: true }],
+        up: r.up, tasks: r.tasks });
+    } else {
+      setDetail({ level: 'task', title: r.title, prog: r.prog, status: r.status,
+        meta: [{ k: '执行 AI', v: r.ai }, { k: '绑定状态', v: r.bound ? '已绑定' : '待绑定' }] });
+    }
+  };
+  const close = () => { setDetail(null); setSel(null); };
+
+  // —— 连线计算（基于真实 DOM 测量）——
+  const computeLinks = React.useCallback(() => {
+    const inner = innerRef.current; if (!inner) return;
+    const ib = inner.getBoundingClientRect();
+    const out = [];
+    edges.forEach(e => {
+      const a = nodeRefs.current[e.from], b = nodeRefs.current[e.to];
+      if (!a || !b) return;
+      const ab = a.getBoundingClientRect(), bb = b.getBoundingClientRect();
+      out.push({ id: e.from + '>' + e.to, level: e.level,
+        x1: ab.right - ib.left, y1: ab.top + ab.height / 2 - ib.top,
+        x2: bb.left - ib.left, y2: bb.top + bb.height / 2 - ib.top });
+    });
+    setLinks(out);
+  }, [edges]);
+
+  // 初始定位：让根节点（项目）落在可视区左侧中部
+  const centered = React.useRef(false);
+  const centerOnRoot = React.useCallback(() => {
+    const c = canvasRef.current, inner = innerRef.current, root = nodeRefs.current['root'];
+    if (!c || !inner || !root || centered.current) return;
+    const ib = inner.getBoundingClientRect(), rb = root.getBoundingClientRect();
+    const ry = rb.top + rb.height / 2 - ib.top;
+    c.scrollTop = Math.max(0, ry - c.clientHeight / 2);
+    c.scrollLeft = 0;
+    centered.current = true;
+  }, []);
+
+  React.useLayoutEffect(() => {
+    if (loading) return;
+    const raf = requestAnimationFrame(() => { computeLinks(); centerOnRoot(); });
+    const t1 = setTimeout(() => { computeLinks(); centerOnRoot(); }, 260);
+    const t2 = setTimeout(computeLinks, 650);
+    const ro = new ResizeObserver(computeLinks);
+    if (innerRef.current) ro.observe(innerRef.current);
+    window.addEventListener('resize', computeLinks);
+    return () => { cancelAnimationFrame(raf); clearTimeout(t1); clearTimeout(t2); ro.disconnect(); window.removeEventListener('resize', computeLinks); };
+  }, [loading, computeLinks]);
+
+  // —— 拖拽平移 ——
+  const pan = React.useRef({ down: false, x: 0, y: 0, sl: 0, st: 0, moved: false });
+  const onDown = (e) => { const c = canvasRef.current; if (!c) return; pan.current = { down: true, x: e.clientX, y: e.clientY, sl: c.scrollLeft, st: c.scrollTop, moved: false }; c.classList.add('grabbing'); };
+  const onMove = (e) => { if (!pan.current.down) return; const c = canvasRef.current; if (!c) return; const dx = e.clientX - pan.current.x, dy = e.clientY - pan.current.y; if (Math.abs(dx) + Math.abs(dy) > 4) pan.current.moved = true; c.scrollLeft = pan.current.sl - dx; c.scrollTop = pan.current.st - dy; };
+  const onUp = () => { pan.current.down = false; const c = canvasRef.current; if (c) c.classList.remove('grabbing'); };
+  const guard = (fn) => () => { if (pan.current.moved) return; fn(); };
+
+  const linkPath = (l) => { const dx = Math.max(24, Math.abs(l.x2 - l.x1) * 0.5); return `M ${l.x1} ${l.y1} C ${l.x1 + dx} ${l.y1}, ${l.x2 - dx} ${l.y2}, ${l.x2} ${l.y2}`; };
+
+  const NodeCard = ({ node }) => {
+    const lv = MM_LV[node.level];
+    const st = node.level === 'ideal' ? null : mmStatus(node);
+    const pc = window.progColor(node.prog || 0);
     return (
-      <button className="gtree-card" data-kapian={c.status === 'kapian'} onClick={() => open(c.d)}>
-        <span className="gtree-card-rail" style={{ background: window.progColor(c.prog || 0) }} />
-        <span className="gtree-card-body">
-          <span className="gtree-card-title">{c.title}</span>
-          <span className="gtree-card-foot">
-            {c.imp != null && <ImpBadge v={c.imp} />}
-            {st && <span className="gtree-card-st" style={{ color: st.c }}><span className="gtree-dot" style={{ background: st.c }} />{st.label}</span>}
+      <button className="mm-node" data-level={node.level} data-on={sel === node.key}
+        ref={el => (nodeRefs.current[node.key] = el)} style={{ '--lc': lv.c }} onClick={guard(() => open(node))}>
+        <span className="mm-head">
+          <span className="mm-tag" style={{ color: lv.c, background: `color-mix(in srgb, ${lv.c} 11%, #fff)` }}>
+            <Icon name={lv.icon} size={11} color={lv.c} />{lv.tag}
           </span>
+          {st && <span className="mm-st" style={{ color: st.c }}><i className="mm-dot" style={{ background: st.c }} />{st.label}</span>}
         </span>
-        <Ring value={c.prog || 0} size={38} stroke={4} color={window.progColor(c.prog || 0)} animate={false} />
+        <span className="mm-text">{node.title}</span>
+        {node.level === 'task' &&
+          <span className="mm-ai"><span className="mm-ava">{node.ai[0]}</span>{node.ai}</span>}
+        <span className="mm-foot">
+          {node.imp != null ? <span className="mm-imp mono">重要度 {node.imp}</span> : <span />}
+          {node.prog != null &&
+            <span className="mm-prog">
+              <span className="mm-prog-bar"><i style={{ width: node.prog + '%', background: pc }} /></span>
+              <span className="mm-prog-n mono" style={{ color: pc }}>{node.prog}%</span>
+            </span>}
+        </span>
       </button>
     );
   };
+
+  const Branch = ({ node }) => (
+    <div className="mm-branch">
+      {node.level === 'root'
+        ? <div className="mm-node mm-root" ref={el => (nodeRefs.current['root'] = el)}>
+            <span className="mm-root-badge"><Icon name="folder-tree" size={12} color="#fff" />项目</span>
+            <span className="mm-root-name">{p.name}</span>
+          </div>
+        : <NodeCard node={node} />}
+      {node.children.length > 0 &&
+        <div className="mm-kids">{node.children.map(c => <Branch key={c.key} node={c} />)}</div>}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -458,34 +594,23 @@ function GoalTreeBook({ project, onNavigate }) {
         </div>
       </div>
 
-      <div className="gtree">
-        {TIERS.map((tier, ti) => {
-          const lv = window.HOME_LEVEL[tier.level];
-          return (
-            <div className="gtree-tier" key={tier.level}>
-              <div className="gtree-spine">
-                <span className="gtree-spine-dot" style={{ background: lv.c }} />
-                {ti < TIERS.length - 1 && <span className="gtree-spine-line" />}
-              </div>
-              <div className="gtree-tier-main">
-                <div className="gtree-tier-head">
-                  <span className="gtree-tier-ico" style={{ background: 'color-mix(in srgb, ' + lv.c + ' 12%, #fff)' }}><Icon name={lv.icon} size={16} color={lv.c} /></span>
-                  <span className="gtree-tier-name">{lv.label}</span>
-                  <span className="gtree-tier-ctx">{tier.ctx}</span>
-                  <span className="gtree-tier-n mono">{tier.cards.length}</span>
-                </div>
-                <div className="gtree-cards">
-                  {tier.cards.length === 0
-                    ? <div className="gtree-empty">暂无</div>
-                    : tier.cards.map(c => <TierCard key={c.key} c={c} level={tier.level} />)}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      <div className="mm-legend">
+        {['ideal', 'mid', 'phase', 'week', 'task'].map(k => (
+          <span key={k}><i className="mm-lg-dot" style={{ background: MM_LV[k].c }} />{MM_LV[k].tag}</span>
+        ))}
+        <span className="mm-legend-hint"><Icon name="move" size={13} color="var(--text-400)" />可拖拽平移 · 点击节点看详情</span>
       </div>
 
-      {GoalDetail && <GoalDetail detail={detail} onClose={() => setDetail(null)} />}
+      <div className="mm-canvas" ref={canvasRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}>
+        <div className="mm-inner" ref={innerRef}>
+          <svg className="mm-links" xmlns="http://www.w3.org/2000/svg">
+            {links.map(l => (<path key={l.id} d={linkPath(l)} className="mm-link" data-level={l.level} />))}
+          </svg>
+          <Branch node={rootNode} />
+        </div>
+      </div>
+
+      {GoalDetail && <GoalDetail detail={detail} onClose={close} />}
     </div>
   );
 }

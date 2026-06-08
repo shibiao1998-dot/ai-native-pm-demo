@@ -1,14 +1,15 @@
 /* ============================================================
    页面 2.3 · 自动立项  +  2.4 · 大额成本审批
-   立项默认 AI 自动；
-   立项成功直接进目标层。成本类唯一人工闸门 = 大额成本审批。
+   ------------------------------------------------------------
+   作用：两个关联页。立项默认 AI 自动（备选池达门槛即自动立项、无人工卡点），
+         立项成功直接写入目标层；成本类唯一的人工闸门 = 大额成本审批（门槛 ≥ 50 万）。
+   数据：CHARTER_PENDING/DONE/DOCS、COST_ITEMS 均为 mock。
    ============================================================ */
 
-/* ============================================================
-   2.3 · 立项
-   ============================================================ */
+/* ====== 2.3 · 自动立项 ====== */
 
-/* 列表项（点击进入完整立项表单） */
+/* 立项列表项（点击进入完整立项表单）。key 对应 CHARTER_DOCS 里的详细章程。
+   status: ready 立项中 / chartered 已立项。 */
 const CHARTER_PENDING = [
   { name: '智能客服自助引擎', id: 'PRJ-PENDING-0042', key: 'self', status: 'ready', from: 'CAND-0042', portfolio: '客户服务自助化', score: 88 },
   { name: '智能定价试验台', id: 'PRJ-PENDING-0043', key: 'pricing', status: 'ready', from: 'CAND-0051', portfolio: '增长与营销', score: 83 },
@@ -18,8 +19,58 @@ const CHARTER_DONE = [
   { name: '会员流失预警', id: 'PRJ-2026-0140', key: 'churn', status: 'chartered', from: 'CAND-0019', portfolio: '增长与营销', score: 85 },
 ];
 
-/* 完整立项表单（项目章程）· 按业内通用立项标准结构化呈现 */
+/* 完整立项表单（项目章程）· 按业内通用立项标准结构化。
+   结构：每个 docKey 对应一份章程，含 meta/background/purpose/objectives/scope/milestones/
+   cost/stakeholders/risks/success/dependencies/aiNote 等字段，由 CharterDoc 逐节渲染。
+   ⚠ mock 数据：真实开发由 AI 立项接口生成。 */
 const CHARTER_DOCS = {
+  sched: {
+    meta: { portfolio: '履约与供应链', owner: '何沛', mode: 'AI 自治', source: 'CAND-0137', score: 90, threshold: 80, date: '2026-03-12' },
+    background: '履约高峰期的订单分配与运力匹配长期依赖人工经验调度，时效波动大、异常处置滞后，履约成本与客户体验同时承压。战略主轴要求履约链路智能化、以实时数据驱动决策。本候选在备选池多维分析中综合评分 90，已达自动立项门槛，由 AI 自主发起立项。',
+    purpose: '构建以实时数据驱动的智能履约调度中台，把订单分配、运力匹配与异常自愈沉淀为可自动执行、可验收的调度闭环，将人工经验调度升级为 AI 自治调度，在保障时效的同时压降单均履约成本。',
+    objectives: [
+      { goal: '平均履约时效', baseline: '6.5h', target: '≤ 4h', src: 'internal' },
+      { goal: '调度时效', baseline: '当前基准', target: '提升 ≥ 30%', src: 'internal' },
+      { goal: '异常调度自愈率', baseline: '—', target: '≥ 90%', src: 'industry' },
+    ],
+    startpoint: '已有订单、运力与路况基础数据，但实时路况未接入、调度规则散落在人工经验中；异常处置以人工兜底为主，缺乏可灰度、可回滚的统一调度框架。',
+    scope: {
+      in: ['订单分配与运力匹配的实时调度闭环', '接入实时路况等关键数据源', '异常调度的自动降级与自愈策略', '调度时效 / 自愈率实时看板'],
+      out: ['运力资源的对外采购决策（仅输出建议）', '末端配送的人工现场操作', '跨区域价格与合规审查'],
+    },
+    deliverables: ['智能履约调度引擎（分配 + 匹配 + 自愈）', '实时路况等数据源接入与数据管道', '异常调度自动降级与自愈策略库', '履约时效 / 自愈率 / 成本实时看板'],
+    milestones: [
+      { phase: 'M1 · 数据接入与基线', when: '第 1–3 周', desc: '打通实时路况与运力数据，建立调度基线指标' },
+      { phase: 'M2 · 调度引擎灰度', when: '第 4–8 周', desc: '分配 / 匹配策略小流量灰度，验证时效提升' },
+      { phase: 'M3 · 异常自愈闭环', when: '第 9–13 周', desc: '上线自动降级与自愈策略，接入人工兜底' },
+      { phase: 'M4 · 全量与调优', when: '第 14–16 周', desc: '全量放开并按时效 / 自愈率目标持续调优' },
+    ],
+    cost: {
+      items: [
+        { k: '实时调度算力扩容', v: '¥1,820,000', tag: '算力' },
+        { k: '数据工程与接入人力（4 个月）', v: '¥640,000', tag: '人力' },
+        { k: '第三方实时路况 API 授权', v: '¥182,000', tag: '采购' },
+      ],
+      total: '¥2,642,000', gate: false,
+      gateNote: '该金额为 AI 立项阶段的预估测算、尚未实际发生，立项不设成本阈值卡点，由 AI 直接判定立项；实际算力 / 采购支出将在执行阶段按大额成本审批逐笔把关。',
+    },
+    stakeholders: [
+      { role: '项目集负责人', who: '何沛 · 履约与供应链', icon: 'user' },
+      { role: '立项发起', who: 'AI 自动立项', icon: 'bot' },
+      { role: '协作 AI 员工', who: '调度 Agent、运力匹配 Agent、监控 Agent（6699.com）', icon: 'bot' },
+      { role: '兜底人工', who: '履约调度值班团队', icon: 'users' },
+    ],
+    assumptions: ['实时路况等关键数据源可稳定接入', '高峰算力配额可按需弹性扩容'],
+    constraints: ['不直接对外采购运力，仅输出调度建议', '受算力高峰配额与依赖服务可用性约束', '异常兜底须保留人工介入通道'],
+    risks: [
+      { risk: '实时数据源时延 / 缺失导致调度失准', level: '中', mitig: '数据缺失即降级到经验规则并告警，回流补数' },
+      { risk: '调度策略灰度样本不足，时效提升不及预期', level: '中', mitig: '扩大灰度窗口、引入对照组分区放量' },
+      { risk: '依赖服务抖动引发调用超时雪崩', level: '高', mitig: '排队降级 + 熔断保护，根因转人工核查' },
+    ],
+    success: ['平均履约时效 ≤ 4h 且稳定 4 周', '调度时效较基线提升 ≥ 30%', '异常调度自愈率 ≥ 90%'],
+    dependencies: ['依赖实时路况 / 运力数据源接入', '依赖 6699.com 调度 / 监控类 AI 员工接口可用', '实际算力 / 采购预算在执行阶段按大额成本审批逐笔释放'],
+    aiNote: 'AI 综合战略契合度（A）、履约收益（A）与可行性（A-），备选池综合评分 90 ≥ 80 门槛，直接自动立项；预估成本属未实际发生的测算、不作为立项卡点。立项材料、事实数据与本结论已全部写入留痕，管理层可事后异步 review 或发起反馈。',
+  },
   self: {
     meta: { portfolio: '客户服务自助化', owner: '苏婧', mode: 'AI 自治', source: 'CAND-0042', score: 88, threshold: 80, date: '2026-06-02' },
     background: '客户自助率长期低于行业基准，人工坐席成本随业务量同步攀升。本周战略主轴调整为「自助化优先」，要求服务类项目优先建设客户可自助完成的能力闭环。本候选在备选池多维分析中综合评分 88，已达自动立项门槛，由 AI 自主发起立项。',
@@ -47,8 +98,8 @@ const CHARTER_DOCS = {
         { k: '对话 / 推理算力扩容', v: '¥240,000', tag: '算力' },
         { k: '第三方语义能力授权', v: '¥180,000', tag: '采购' },
       ],
-      total: '¥1,140,000', gate: true,
-      gateNote: '人力 72 万、采购 18 万均触发大额成本审批（≥ 50 万），已转管理层异步拍板。',
+      total: '¥1,140,000', gate: false,
+      gateNote: '该金额为 AI 立项阶段的预估测算、尚未实际发生，立项不设成本阈值卡点，由 AI 直接判定立项；实际人力 / 采购支出将在执行阶段按大额成本审批逐笔把关。',
     },
     stakeholders: [
       { role: '项目集负责人', who: '苏婧 · 客户服务自助化', icon: 'user' },
@@ -64,8 +115,8 @@ const CHARTER_DOCS = {
       { risk: '知识覆盖不足导致答非所问', level: '低', mitig: '低置信即转人工，并回流补充知识' },
     ],
     success: ['客户自助完成率 ≥ 70% 且稳定 4 周', '人工工单量同比下降 ≥ 30%', '自助满意度不低于人工基线'],
-    dependencies: ['依赖「客服知识中枢重构」项目的知识底座', '依赖 6699.com 对话 / 知识类 AI 员工接口可用', '依赖大额成本审批通过后释放人力 / 采购'],
-    aiNote: 'AI 综合战略契合度（A）、市场机会（A-）与预期收益（A-），判定该候选具备自动立项条件；立项材料、事实数据与本结论已全部写入留痕，管理层可事后异步 review 或发起反馈。',
+    dependencies: ['依赖「客服知识中枢重构」项目的知识底座', '依赖 6699.com 对话 / 知识类 AI 员工接口可用', '实际人力 / 采购预算在执行阶段按大额成本审批逐笔释放'],
+    aiNote: 'AI 综合战略契合度（A）、市场机会（A-）与预期收益（A-），备选池综合评分 88 ≥ 80 门槛，直接自动立项；预估成本属未实际发生的测算、不作为立项卡点。立项材料、事实数据与本结论已全部写入留痕，管理层可事后异步 review 或发起反馈。',
   },
   pricing: {
     meta: { portfolio: '增长与营销', owner: '林越', mode: 'AI 自治', source: 'CAND-0051', score: 83, threshold: 80, date: '2026-06-02' },
@@ -91,8 +142,8 @@ const CHARTER_DOCS = {
         { k: '试验平台研发算力', v: '¥320,000', tag: '算力' },
         { k: '数据工程人力', v: '¥260,000', tag: '人力' },
       ],
-      total: '¥580,000', gate: true,
-      gateNote: '合计 58 万触发大额成本审批（≥ 50 万），已转管理层拍板。',
+      total: '¥580,000', gate: false,
+      gateNote: '该金额为 AI 立项阶段的预估测算、尚未实际发生，立项不设成本阈值卡点，AI 直接完成立项；实际支出将在执行阶段按大额成本审批把关。',
     },
     stakeholders: [
       { role: '项目集负责人', who: '林越 · 增长与营销', icon: 'user' },
@@ -133,7 +184,7 @@ const CHARTER_DOCS = {
         { k: '数据标注', v: '¥120,000', tag: '人力' },
       ],
       total: '¥300,000', gate: false,
-      gateNote: '合计 30 万未达大额成本审批门槛（≥ 50 万），无需人工拍板。',
+      gateNote: '该金额为立项阶段的预估测算、尚未实际发生，立项不设成本阈值卡点；实际支出将在执行阶段按大额成本审批把关。',
     },
     stakeholders: [
       { role: '项目集负责人', who: '苏婧 · 增长与营销', icon: 'user' },
@@ -154,6 +205,7 @@ const CHARTER_DOCS = {
 const CD_COST_TAG = { '采购': { c: 'var(--info)', bg: 'var(--info-bg)' }, '人力': { c: '#7C5CD6', bg: '#F3EEFB' }, '算力': { c: 'var(--ai)', bg: 'var(--ai-soft)' } };
 const CD_RISK_TONE = { '高': { c: 'var(--danger)', bg: 'var(--danger-bg)' }, '中': { c: 'var(--warning)', bg: 'var(--warning-bg)' }, '低': { c: 'var(--success)', bg: 'var(--success-bg)' } };
 
+// CDSec：立项表单的「编号小节」容器（序号 + 图标 + 标题 + 内容）。
 function CDSec({ no, title, icon, children }) {
   return (
     <section className="cd-sec">
@@ -167,6 +219,8 @@ function CDSec({ no, title, icon, children }) {
   );
 }
 
+/* CharterDoc — 根据 docKey 渲染一份完整立项表单（15 个编号小节）。
+   status='chartered' 时顶部横幅变为「已立项」态。数据取自 CHARTER_DOCS[docKey]。 */
 function CharterDoc({ docKey, status }) {
   const d = CHARTER_DOCS[docKey];
   if (!d) return null;
@@ -177,8 +231,8 @@ function CharterDoc({ docKey, status }) {
       <div className={`cd-banner${chartered ? ' is-done' : ''}`}>
         <Icon name={chartered ? 'circle-check' : 'sparkles'} size={15} color={chartered ? 'var(--success)' : 'var(--ai)'} />
         <span>{chartered
-          ? '本项目已由 AI 自动立项并写入目标层，以下为存档的完整立项表单（项目章程）。'
-          : '以下为 AI 依据备选池分析与外部调研自动生成的完整立项表单（项目章程），确认后即写入目标层。'}</span>
+          ? '本项目已由 AI 自动立项并写入目标层，以下为存档于履历留痕的完整立项表单（项目章程）。'
+          : '以下为 AI 在立项分析阶段自动生成的完整立项表单（项目章程）：备选池综合评分达 80 分即自动触发立项、无需人工审批；表单已完整归档于履历留痕，可随时查看与调整。'}</span>
       </div>
 
       <CDSec no="01" title="立项概要" icon="file-badge">
@@ -328,6 +382,10 @@ function CharterDoc({ docKey, status }) {
   );
 }
 
+/* Charter — 自动立项页主体。
+   状态：loading 加载；tab 立项中/已立项；items 立项中列表；done 已立项；active 当前查看的表单。
+   核心交互：「无卡点」自动立项 — 加载完成后的 useEffect 错峰把「立项中」逐个移入「已立项」
+     并弹 Toast。charterNow 为手动立即立项。⚠ setTimeout 为演示，真实开发由后端驱动。 */
 function Charter() {
   const [loading, setLoading] = React.useState(true);
   const [tab, setTab] = React.useState('pending');
@@ -340,6 +398,21 @@ function Charter() {
     const t = setTimeout(() => setLoading(false), 1000);
     return () => clearTimeout(t);
   }, []);
+
+  /* 无卡点：达门槛后 AI 自动把「立项中」项目逐个完成立项并写入目标层 */
+  React.useEffect(() => {
+    if (loading) return;
+    const timers = [];
+    CHARTER_PENDING.forEach((item, idx) => {
+      timers.push(setTimeout(() => {
+        setItems(prev => prev.filter(i => i.id !== item.id));
+        const newId = item.id.replace('PRJ-PENDING-', 'PRJ-2026-01');
+        setDone(prev => prev.some(d => d.id === newId) ? prev : [{ ...item, id: newId, status: 'chartered' }, ...prev]);
+        setToast({ msg: `「${item.name}」AI 自动立项完成 · 已写入目标层`, action: '进入目标树' });
+      }, 1500 + idx * 1700));
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [loading]);
 
   const charterNow = (item) => {
     setItems(prev => prev.filter(i => i.id !== item.id));
@@ -372,7 +445,7 @@ function Charter() {
 
       <div className="ch-tabs">
         <button className="ch-tab" data-on={tab === 'pending'} onClick={() => setTab('pending')}>
-          <Icon name="loader" size={15} color={tab === 'pending' ? 'var(--text-900)' : 'var(--text-500)'} />待立项<span className="ch-tab-n">{items.length}</span>
+          <Icon name="loader" size={15} color={tab === 'pending' ? 'var(--text-900)' : 'var(--text-500)'} />立项中<span className="ch-tab-n">{items.length}</span>
         </button>
         <button className="ch-tab" data-on={tab === 'chartered'} onClick={() => setTab('chartered')}>
           <Icon name="circle-check" size={15} color={tab === 'chartered' ? 'var(--text-900)' : 'var(--text-500)'} />已立项<span className="ch-tab-n">{done.length}</span>
@@ -382,7 +455,7 @@ function Charter() {
       {loading ? (
         <div className="ch-rows">{[0,1].map(i => <ChSkel key={i} />)}</div>
       ) : list.length === 0 ? (
-        <Card><EmptyState glyph={tab === 'pending' ? 'clipboard-list' : 'package-check'} title={tab === 'pending' ? '当前无待立项的备选项目' : '尚无已立项项目'} desc={tab === 'pending' ? '备选池中达到立项门槛的项目会自动进入此队列，由 AI 自主完成立项。' : '完成立项的项目将出现在此，并已写入目标层。'} /></Card>
+        <Card><EmptyState glyph={tab === 'pending' ? 'clipboard-list' : 'package-check'} title={tab === 'pending' ? '暂无立项中的项目' : '尚无已立项项目'} desc={tab === 'pending' ? '备选池中综合评分达 80 分的项目会自动立项并直接写入目标层，无需人工卡点。' : '完成立项的项目将出现在此，并已写入目标层。'} /></Card>
       ) : (
         <div className="ch-rows">
           {list.map(item => {
@@ -396,8 +469,8 @@ function Charter() {
                 </div>
                 <span className="ch-row-score">综合评分 <b className="mono">{item.score}</b></span>
                 <span className="ch-row-status" data-done={chartered}>
-                  <Icon name={chartered ? 'circle-check' : 'file-text'} size={12} color={chartered ? 'var(--success)' : 'var(--ai)'} />
-                  {chartered ? '已立项' : '待立项 · 表单就绪'}
+                  <Icon name={chartered ? 'circle-check' : 'loader'} size={12} color={chartered ? 'var(--success)' : 'var(--ai)'} />
+                  {chartered ? '已立项' : '立项中 · 自动写入目标层'}
                 </span>
                 <Icon name="chevron-right" size={16} color="var(--text-400)" />
               </button>
@@ -438,17 +511,11 @@ function ChSkel() {
   );
 }
 
-/* ============================================================
-   2.4 · 大额成本审批（成本类唯一人工闸门 · 门槛 ≥ 50 万）
-   ============================================================ */
-
+/* ====== 2.4 · 大额成本审批（成本类唯一人工闸门 · 门槛 ≥ 50 万）======
+   COST_THRESHOLD 门槛金额；COST_ITEMS 待审批的大额成本（含 AI 建议 aiTone：pass 建议批 / caution 提醒）。 */
 const COST_THRESHOLD = 500000;
 
 const COST_ITEMS = [
-  { id: 'c1', project: '供应链风险预警中台', pid: 'PRJ-PENDING-0058', type: '采购', amount: 3400000, waited: '2h 10m', from: '立项', fromDetail: '立项材料 · 一次性平台采购',
-    ai: '采购单价低于市场基准约 6%，属新中台必要底座投入，建议批准并要求分两期到账。', aiTone: 'pass',
-    breakdown: [ { k: '实时数据源年度授权', v: 1800000 }, { k: '风险计算引擎许可', v: 1200000 }, { k: '接入与集成服务', v: 400000 } ],
-    rel: { goal: '理想化状态：供应链中断预警提前 ≥ 7 天', task: '—（立项触发）' } },
   { id: 'c2', project: '智能履约调度中台', pid: 'PRJ-2026-0137', type: '采购', amount: 1820000, waited: '1h 05m', from: '执行事务', fromDetail: '事务 T-0291 · 路况源选型',
     ai: '第三方地图路况 API 三年授权，单价低于基准约 8%，口径合规，建议批准。', aiTone: 'pass',
     breakdown: [ { k: '路况 API 三年授权', v: 1560000 }, { k: '高并发配额扩容', v: 260000 } ],
@@ -457,16 +524,15 @@ const COST_ITEMS = [
     ai: '推理算力扩容方案 ROI 边际偏低，建议先按 60% 规模采购、验证后再追加。', aiTone: 'caution',
     breakdown: [ { k: 'GPU 推理集群扩容', v: 980000 }, { k: '存储与带宽', v: 270000 } ],
     rel: { goal: '阶段目标：履约时效 < 4h', task: '事务 T-0312 · 算力扩容' } },
-  { id: 'c4', project: '客服知识中枢重构', pid: 'PRJ-2026-0129', type: '人力', amount: 960000, waited: '6h 20m', from: '立项', fromDetail: '立项材料 · 大量人力投入',
-    ai: '知识标注与冷启动需集中人力，预估投入合理，建议批准并设阶段验收。', aiTone: 'pass',
-    breakdown: [ { k: '知识标注外包（3 个月）', v: 720000 }, { k: '领域专家评审', v: 240000 } ],
-    rel: { goal: '理想化状态：客服自助率 ≥ 70%', task: '—（立项触发）' } },
   { id: 'c5', project: '营销内容生成平台', pid: 'PRJ-2026-0144', type: '人力', amount: 680000, waited: '11h 02m', from: '执行事务', fromDetail: '事务 T-0490 · 高峰人力',
     ai: '高峰时段创意人力扩充属临时性投入，回收周期约 8 周偏长，建议压缩规模或驳回。', aiTone: 'caution',
     breakdown: [ { k: '创意人力外包（高峰）', v: 520000 }, { k: '质量审核', v: 160000 } ],
     rel: { goal: '周目标：内容产出 200 篇 / 周', task: '事务 T-0490 · 高峰人力' } },
 ];
 
+/* CostApproval — 大额成本审批页主体。
+   状态：loading；items 待审列表；active 当前抽屉项。dispose 批准/驳回后从列表移除并写留痕。
+   注：本系统不付款，批准仅解除成本卡点，实际付款在外部财务系统。 */
 function CostApproval({ onNavigate }) {
   const [loading, setLoading] = React.useState(true);
   const [items, setItems] = React.useState(COST_ITEMS);
@@ -531,7 +597,7 @@ function CostApproval({ onNavigate }) {
 
       <div className="ca-disclaimer">
         <Icon name="info" size={15} color="var(--text-400)" />
-        本系统不付款，仅做大额成本卡点的拍板与留痕；真正的预算 / 财务执行在外部系统完成。
+        仅对执行阶段实际发生的大额采购 / 人力成本做拍板与留痕；立项阶段的预估金额为未实际发生的测算，不再进入本队列。本系统不付款，真正的预算 / 财务执行在外部系统完成。
       </div>
 
       {loading ? (
@@ -586,8 +652,11 @@ function CostApproval({ onNavigate }) {
   );
 }
 
+/* CostDisposal — 大额成本的抽屉处置体（批准/驳回的二步确认状态机）。
+   mode: null 初始 → 点「批准」变 approve（再点才 commit）/ 点「驳回」变 reject（必填理由才 commit）。
+   commit 调 onDispose(item, mode, reason)。 */
 function CostDisposal({ item, fmt, onDispose }) {
-  const [mode, setMode] = React.useState(null); // null | approve | reject
+  const [mode, setMode] = React.useState(null); // null | approve（待确认批准）| reject（待填理由驳回）
   const [reason, setReason] = React.useState('');
   const commit = () => {
     if (mode === 'reject' && !reason.trim()) return;
@@ -650,7 +719,7 @@ function CostDisposal({ item, fmt, onDispose }) {
       {mode === 'reject' && (
         <div className="disp-reason">
           <label className="t-caption" style={{ fontWeight: 500, color: 'var(--text-700)' }}>驳回理由<span style={{ color: 'var(--danger)' }}> *</span></label>
-          <textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="驳回须填写理由，将随处置写入留痕并回到对应流程（立项 / 执行事务）…" autoFocus />
+          <textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="驳回须填写理由，将随处置写入留痕并回到对应执行事务…" autoFocus />
         </div>
       )}
 
@@ -681,4 +750,4 @@ function CaSkel() {
   );
 }
 
-Object.assign(window, { Charter, CostApproval });
+Object.assign(window, { Charter, CostApproval, CharterDoc, CDSec, CHARTER_DOCS });

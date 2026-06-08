@@ -3,6 +3,92 @@
    ============================================================ */
 
 /* ---------- 介入工作台 ---------- */
+
+/* 运行模型 · AI 自治流水线 */
+.ivx-model { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; background: linear-gradient(180deg, var(--blue-tint) 0%, #fff 120%); border: 1px solid var(--blue-border); border-radius: var(--r-lg); padding: 18px 22px; margin-bottom: 14px; }
+.ivx-model-l { display: flex; align-items: flex-start; gap: 13px; flex: 1; min-width: 320px; }
+.ivx-model-ico { width: 38px; height: 38px; border-radius: var(--r-md); background: #fff; border: 1px solid var(--blue-border); display: flex; align-items: center; justify-content: center; flex: none; }
+.ivx-model-t { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 600; color: var(--text-900); }
+.ivx-model-s { font-size: 12.5px; line-height: 1.7; color: var(--text-600, var(--text-700)); margin-top: 5px; max-width: 640px; text-wrap: pretty; }
+.ivx-live { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--success); background: var(--success-bg); padding: 2px 8px; border-radius: var(--r-full); }
+.ivx-live-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--success); animation: ivx-pulse 1.6s ease-in-out infinite; }
+@keyframes ivx-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.ivx-model-stats { display: flex; align-items: stretch; gap: 0; flex: none; }
+.ivx-stat { display: flex; flex-direction: column; gap: 3px; padding: 0 18px; border-left: 1px solid var(--blue-border); }
+.ivx-stat:first-child { padding-left: 0; border-left: none; }
+.ivx-stat-v { font-size: 21px; font-weight: 700; color: var(--text-900); line-height: 1; }
+.ivx-stat-k { font-size: 11.5px; color: var(--text-500); white-space: nowrap; }
+
+/* 人的三种工作方式 */
+.ivx-modes { margin-bottom: 18px; }
+.ivx-modes-head { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 500; color: var(--text-500); margin-bottom: 10px; }
+.ivx-modes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.ivx-mode { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-lg); cursor: pointer; text-align: left; transition: box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast); }
+.ivx-mode[data-as="wrap"] { cursor: default; }
+button.ivx-mode:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); border-color: var(--border-300); }
+.ivx-mode-ico { width: 34px; height: 34px; border-radius: var(--r-md); background: var(--blue-tint); display: flex; align-items: center; justify-content: center; flex: none; }
+.ivx-mode-main { flex: 1; min-width: 0; }
+.ivx-mode-t { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; color: var(--text-900); }
+.ivx-mode-tag { font-size: 10.5px; font-weight: 600; color: var(--blue-primary); background: var(--blue-tint); padding: 1px 6px; border-radius: var(--r-full); }
+.ivx-mode-d { display: block; font-size: 12px; line-height: 1.55; color: var(--text-500); margin-top: 3px; }
+.ivx-mode .feedback-entry { flex: none; }
+
+/* 队列标题 + 边界筛选 */
+.ivx-q-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.ivx-q-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--text-900); }
+.ivx-q-n { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 21px; padding: 0 7px; background: var(--warning-bg); color: var(--warning); font-size: 12.5px; font-weight: 700; border-radius: var(--r-full); }
+.ivx-filter { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.ivx-filter-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 11px; background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-full); font-size: 12.5px; font-weight: 500; color: var(--text-700); cursor: pointer; transition: all var(--dur-fast); }
+.ivx-filter-btn:hover { border-color: var(--border-300); }
+.ivx-filter-btn[data-on="true"] { border-color: var(--blue-border); background: var(--blue-tint); color: var(--blue-primary); font-weight: 600; }
+.ivx-filter-n { font-size: 11.5px; color: var(--text-400); }
+.ivx-filter-btn[data-on="true"] .ivx-filter-n { color: var(--blue-primary); }
+
+/* 卡片：边界标签 + 「为何需要你」行 */
+.ivx-bk { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--r-full); flex: none; }
+.ivx-why-line { display: flex; align-items: baseline; gap: 6px; margin-top: 9px; font-size: 12.5px; line-height: 1.6; color: var(--text-700); }
+.ivx-why-line .ic { align-self: center; flex: none; }
+.ivx-why-label { flex: none; font-size: 11px; font-weight: 600; color: var(--text-500); background: var(--canvas); padding: 1px 7px; border-radius: var(--r-full); }
+
+/* 抽屉：边界原因盒 */
+.ivx-why-box { background: var(--bk-bg, var(--canvas)); border: 1px solid var(--bk-c); border-left-width: 3px; border-radius: var(--r-md); padding: 13px 15px; }
+.ivx-why-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: var(--r-full); }
+.ivx-why-text { margin: 9px 0 0; font-size: 13px; line-height: 1.7; color: var(--text-900); }
+.ivx-why-rule { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: var(--text-500); flex-wrap: wrap; }
+.ivx-rule-link { display: inline-flex; align-items: center; gap: 5px; border: none; background: #fff; border: 1px solid var(--border-200); padding: 3px 9px; border-radius: var(--r-full); font-size: 12px; font-weight: 500; color: var(--text-900); cursor: pointer; transition: all var(--dur-fast); }
+.ivx-rule-link:hover { border-color: var(--blue-border); color: var(--blue-primary); }
+.ivx-rule-link .mono { color: var(--blue-primary); }
+
+/* 抽屉：系统级优化 */
+.ivx-fix { background: var(--ai-soft); border: 1px solid #BEE6F8; border-radius: var(--r-md); padding: 14px 15px; }
+.ivx-fix.is-keep { background: var(--neutral-bg); border-color: var(--border-200); }
+.ivx-fix-head { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: var(--text-900); }
+.ivx-fix-rule { margin: 9px 0 0; font-size: 13px; line-height: 1.72; color: var(--text-900); font-weight: 500; }
+.ivx-fix-effect { display: flex; align-items: baseline; gap: 6px; margin: 9px 0 0; font-size: 12px; line-height: 1.6; color: var(--text-600, var(--text-700)); }
+.ivx-fix-effect .ic { align-self: center; flex: none; }
+.ivx-fix-btn { display: inline-flex; align-items: center; gap: 7px; margin-top: 13px; height: 36px; padding: 0 14px; background: #fff; border: 1px solid var(--blue-border); border-radius: var(--r-sm); font-size: 13px; font-weight: 600; color: var(--blue-primary); cursor: pointer; transition: all var(--dur-fast); }
+.ivx-fix-btn:hover { background: var(--blue-tint); }
+
+/* 模型条内联链接 */
+.ivx-inline-link { border: none; background: transparent; padding: 0 2px; font: inherit; font-weight: 600; color: var(--blue-primary); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.ivx-inline-link:hover { color: var(--blue-deep); }
+
+/* 风险台账 → 介入工作台 升级链接 */
+.rk-esc { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #F2DDB6; background: var(--warning-bg); color: var(--warning); font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: var(--r-full); cursor: pointer; transition: all var(--dur-fast); white-space: nowrap; }
+.rk-esc:hover { box-shadow: var(--shadow-xs); }
+.rk-esc-link { display: flex; align-items: center; gap: 11px; width: 100%; margin-top: 12px; padding: 12px 14px; background: var(--warning-bg); border: 1px solid #F2DDB6; border-radius: var(--r-md); cursor: pointer; text-align: left; transition: box-shadow var(--dur-fast), transform var(--dur-fast); }
+.rk-esc-link:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.rk-esc-link-ico { width: 30px; height: 30px; border-radius: var(--r-sm); background: #fff; display: flex; align-items: center; justify-content: center; flex: none; }
+.rk-esc-link-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rk-esc-link-k { font-size: 13px; font-weight: 600; color: var(--text-900); }
+.rk-esc-link-v { font-size: 12px; color: var(--text-500); }
+
+@media (max-width: 1100px) {
+  .ivx-modes-grid { grid-template-columns: 1fr; }
+  .ivx-model-stats { width: 100%; }
+  .ivx-stat:first-child { padding-left: 0; }
+}
+
 .iv-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 16px; }
 .iv-stat { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: #fff; border: 1px solid var(--border-200); border-radius: var(--r-md); cursor: pointer; text-align: left; transition: border-color var(--dur-fast), box-shadow var(--dur-fast); }
 .iv-stat:hover { border-color: var(--border-300); box-shadow: var(--shadow-xs); }

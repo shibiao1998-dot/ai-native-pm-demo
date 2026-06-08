@@ -1,13 +1,24 @@
 /* ============================================================
    页面 2.1 · 战略层  +  2.2 · 项目备选池（组合级）
-   战略从外部进入、立项全 AI 自主；本平台不生产战略，只接收
-   外部「顶层战略 Agent」推送，比对更新、判断影响、向下传导。
+   ------------------------------------------------------------
+   业务模型：战略从外部进入、立项全 AI 自主。本平台不生产战略，只接收
+         外部「顶层战略 Agent」推送，比对更新、判断影响、向下传导。
+
+   本文件包含三块：
+     ① 异步反馈子系统（FeedbackEntry / ActionReviewDialog 等）—— 全平台复用的「对话式反馈」：
+        识别当前对象 → 引导输入 → 识别意图并给出调整方向 → 确认后执行 / 往复迭代。
+     ② StrategyLayer（战略层页）—— 按日期版本 + 项目集查看战略文档、更新点、AI 已执行动作。
+     ③ CandidatePool（备选池页）—— 候选项目多维评分 + 门槛判定 + 自动立项。
+   数据：本文件内 STRATEGY_* / PORTFOLIO_IMPACT / CANDIDATES 等均为 mock。
    ============================================================ */
 
-/* 统一异步反馈入口 — 点击打开反馈抽屉，提交后回调原 onClick 作为确认动作 */
+/* ====== 异步反馈子系统（通用）====== */
+
+/* 反馈分类（预留，当前以自由文本为主）。 */
 const FEEDBACK_CATS = ['理解偏差', '结论存疑', '补充信息', '其他建议'];
 
-/* 由按钮文案推断本次反馈针对的对象（例如「对复盘结论留意见」→「复盘结论」） */
+/* fbSubject — 由按钮文案推断本次反馈针对的对象。
+   例如「对复盘结论留意见」→ 主题「复盘结论」。传入 context 时优先用 context。 */
 function fbSubject(label, context) {
   if (context) return context;
   if (!label) return '';
@@ -56,8 +67,15 @@ function fbBuildPlan(subject, intent) {
   };
 }
 
-/* 统一异步反馈入口 · 全平台一致的对话式交互：
-   识别当前对象 → 引导输入 → 识别意图并给出调整方向 → 确认后执行 / 往复迭代 */
+/* FeedbackEntry — 全平台统一的异步反馈入口（一个按钮 + 对话式抽屉）。
+   交互状态机（这是本平台最核心的交互模式，多处复用）：
+     ① 点按钮 → open=true 打开抽屉；抽屉打开后先清空消息、进入 thinking，850ms 后
+        推送一条 AI 引导语（fbIntro，结合当前模块上下文）。
+     ② 用户输入发送 → detectIntent() 识别意图 → 850ms 后返回一条 plan 消息（fbBuildPlan）。
+     ③ 点「确认并执行」→ execute()：标记该条已执行、追加一条完成消息，并回调父级 onClick（确认动作）。
+     ④ 不满意可继续输入 → 重新走 ②，形成往复迭代。
+   副作用：msgs/thinking 变化时自动滚到底（bodyRef）。快捷键：Cmd/Ctrl+Enter 发送。
+   props：label 按钮文案；onClick 执行后的确认回调；context 当前模块上下文；subject 显式指定反馈对象。 */
 function FeedbackEntry({ label = '异步反馈', onClick, title = '异步反馈', context, subject }) {
   const [open, setOpen] = React.useState(false);
   const [msgs, setMsgs] = React.useState([]);
@@ -299,8 +317,9 @@ const IMPACT_SECTIONS = [
 
 const MOVE_COLOR = { success: 'var(--success)', warning: 'var(--warning)', info: 'var(--info)', danger: 'var(--danger)', neutral: 'var(--text-500)' };
 
-/* 项目集选择器（含负责人，默认首个项目集） */
-function PortfolioPicker({ value, onChange }) {
+/* 项目集选择器（含负责人，默认首个项目集）
+   allowNew：追加「新领域 · 全新尝试」目标；portfolios：可覆盖列表（冷启动传空） */
+function PortfolioPicker({ value, onChange, allowNew = false, portfolios = PORTFOLIOS, newId = '__new__' }) {
   const [open, setOpen] = React.useState(false);
   React.useEffect(() => {
     if (!open) return;
@@ -308,18 +327,22 @@ function PortfolioPicker({ value, onChange }) {
     window.addEventListener('click', h);
     return () => window.removeEventListener('click', h);
   }, [open]);
-  const cur = PORTFOLIOS.find(p => p.id === value) || PORTFOLIOS[0];
+  const empty = portfolios.length === 0;
+  const isNew = value === newId;
+  const cur = portfolios.find(p => p.id === value);
+  const label = isNew ? '新领域 · 全新尝试' : empty ? '从零开始 · 暂无项目集' : cur ? cur.name : '选择项目集';
   return (
     <div className="st-pf-pick" onClick={(e) => e.stopPropagation()}>
-      <button className="st-pf-btn" data-on={true} onClick={() => setOpen(o => !o)}>
-        <Icon name="layers" size={15} color="var(--blue-primary)" />
-        <span className="st-pf-label">{cur.name}</span>
-        <span className="st-pf-owner">{cur.owner}</span>
+      <button className="st-pf-btn" data-on={true} data-new={isNew || empty} onClick={() => setOpen(o => !o)}>
+        <Icon name={isNew || empty ? 'sparkles' : 'layers'} size={15} color={isNew || empty ? 'var(--ai)' : 'var(--blue-primary)'} />
+        <span className="st-pf-label">{label}</span>
+        {!isNew && !empty && cur && <span className="st-pf-owner">{cur.owner}</span>}
         <Icon name="chevron-down" size={14} color="var(--text-400)" />
       </button>
       {open && (
         <div className="st-pf-menu">
-          {PORTFOLIOS.map(p => {
+          {empty && <div className="st-pf-menu-empty"><Icon name="inbox" size={13} color="var(--text-400)" />系统暂无项目集 · 从「新领域」开始构建第一个</div>}
+          {portfolios.map(p => {
             const aff = PORTFOLIO_IMPACT[p.id] && PORTFOLIO_IMPACT[p.id].affected;
             return (
               <button key={p.id} className="st-pf-opt" data-on={value === p.id} onClick={() => { onChange(p.id); setOpen(false); }}>
@@ -330,13 +353,26 @@ function PortfolioPicker({ value, onChange }) {
               </button>
             );
           })}
+          {allowNew && (
+            <>
+              {!empty && <div className="st-pf-menu-sep" />}
+              <button className="st-pf-opt st-pf-opt-new" data-on={isNew} onClick={() => { onChange(newId); setOpen(false); }}>
+                <Icon name="sparkles" size={14} color="var(--ai)" />
+                <span>新领域 · 全新尝试</span>
+                <span className="st-pf-opt-sub">AI 判断是否新建项目集</span>
+                {isNew && <Icon name="check" size={15} color="var(--ai)" />}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-/* ---------- 异步反馈 · 意图识别 + 处理方案 ---------- */
+/* ---------- 异步反馈 · 意图识别 + 处理方案 ----------
+   detectIntent：用正则关键词把用户自然语言归类为五种意图之一。
+     ⚠ 真实开发：这是规则式模拟，应替换为 NLU / 大模型意图识别。 */
 function detectIntent(text) {
   const t = text || '';
   if (/撤销|撤回|回撤|退回|不该|不应|别立项|不立项|取消立项/.test(t)) return 'revoke';
@@ -351,7 +387,9 @@ const INTENT_LABEL = {
   reprioritize: '调整优先级', adjust: '微调内容',
 };
 
-// 根据「AI 已执行的动作」+「用户意图」生成自然语言处理方案
+// buildPlan：根据「AI 已执行的动作 action」+「用户意图 intent」生成自然语言处理方案。
+// 按 action.kind（charter 立项 / hold 留池 / newSub 新子项 / closure 结项 / modify 修改）分支，
+// 每个分支再按 intent 给出不同的 summary + steps（步骤）。返回结构 { summary, steps:[{icon,text}] }。
 function buildPlan(action, intent, pfName) {
   const n = action.project;
   const S = (icon, text) => ({ icon, text });
@@ -472,6 +510,10 @@ const ACTION_KIND_META = {
   modify:   { label: 'AI 已修改项目信息', icon: 'pencil-line' },
 };
 
+/* ActionReviewDialog — 「复核 AI 已执行动作」的异步反馈对话（与 FeedbackEntry 同构）。
+   与 FeedbackEntry 区别：本抽屉是针对某条「AI 已执行动作」(action) 发起的，
+     开场先播报该动作，用户提异议后走 detectIntent → buildPlan → execute（含回撤）。
+   状态：action 为真时抽屉打开；execute 后通过 onToast 弹提示并可跳「查看留痕」。 */
 function ActionReviewDialog({ action, pfName, onClose, onToast }) {
   const open = !!action;
   const [msgs, setMsgs] = React.useState([]);
@@ -578,7 +620,12 @@ function ActionReviewDialog({ action, pfName, onClose, onToast }) {
   );
 }
 
-function StrategyLayer() {
+/* StrategyLayer — 战略层页主体。
+   状态：ver 日期版本下标；pf 当前项目集；fbAction 当前复核的动作；open 哪些条款展开。
+   核心逻辑：buckets 按选中项目集从 PORTFOLIO_IMPACT 取出三类影响（承接/新子项/备选池）；
+     clauses/updates 按项目集过滤战略条款与更新点。改 pf / ver 即联动全页。
+     openFb(a)：点某条动作的反馈按钮 → 打开 ActionReviewDialog。 */
+function StrategyLayer({ onNavigate }) {
   const [ver, setVer] = React.useState(0);
   const [pf, setPf] = React.useState(() => PORTFOLIOS[0].id);
   const [fbAction, setFbAction] = React.useState(null);
@@ -641,6 +688,15 @@ function StrategyLayer() {
         <PortfolioPicker value={pf} onChange={setPf} />
       </div>
 
+      {/* 归属判定 · 战略意图与管理者意图共用同一管道 */}
+      <div className="st-attr-banner">
+        <span className="st-attr-ico"><Icon name="git-pull-request-arrow" size={18} color="var(--ai)" /></span>
+        <div className="st-attr-main">
+          <div className="st-attr-t">每条战略意图先经「归属判定」再向下传导</div>
+          <div className="st-attr-s">无论来自<b>每日顶层战略文档</b>还是<button className="st-inline-link" onClick={() => onNavigate && onNavigate('mgr-intent')}>管理者意图</button>，AI 都先判定它是<b>承接到现有项目集</b>还是<b>需新建项目集</b>。系统冷启动（空库）时，第一条意图即以此路径新建第一个项目集。</div>
+        </div>
+      </div>
+
       <div className="st-grid">
         {/* 左：战略文档卡 */}
         <Card className="st-doc">
@@ -654,7 +710,7 @@ function StrategyLayer() {
           </div>
           <div className="st-doc-scope">
             <Icon name="sparkles" size={13} color="var(--ai)" />
-            AI 已比对 昨日→今日 战略文档，按「{curPf.name}」筛选出相关变动并二次分析
+            AI 已比对 昨日→今日 战略文档（并纳入「管理者意图」新增方向），按「{curPf.name}」筛选出相关变动并二次分析
           </div>
           <div className="st-clauses">
             {clauses.map(c => (
@@ -859,6 +915,9 @@ function StrategyLayer() {
    2.2 · 项目备选池
    ============================================================ */
 
+/* ====== 2.2 · 项目备选池 数据 ======
+   POOL_REVIEW_DATES 复盘批次；CANDIDATES 候选项目（score 综合评分 / threshold 门槛 /
+   analyzing 是否分析中 / complete 分析完成度 / tavily 是否可借外部调研）。 */
 const POOL_REVIEW_DATES = ['2026-06-02', '2026-06-01', '2026-05-31', '2026-05-30', '2026-05-29'];
 
 const POOL_DIRECTIONS = ['全部', '自助化优先', '供应链风险预警', '下沉市场扩张', '数据统一治理', '增长重心'];
@@ -880,6 +939,8 @@ const CANDIDATES = [
 
 const PRIO_LABEL = { up: '优先级 ↑', down: '优先级 ↓', flat: '优先级 —' };
 
+/* REPORT_DIMS — 候选项目的六个评分维度（战略契合/市场/技术/资源/风险/收益）。
+   每维携 score(A–C 评级) + body 结论 + src 证据来源（映射 SOURCE_DETAIL）。 */
 const REPORT_DIMS = [
   { name: '战略契合度', icon: 'compass', score: 'A', tone: 'success', body: '与本周战略主轴「自助化优先」高度契合，属总纲直接派生方向。', src: { t: '战略层影响分析', mono: 'STRAT-0602', link: true } },
   { name: '市场机会', icon: 'trending-up', score: 'A-', tone: 'success', body: '客户自助化工具市场年增约 24%，头部企业自助率普遍达 60%+。', src: { t: '外部调研 · Tavily', mono: 'TAVILY', link: true } },
@@ -904,7 +965,9 @@ const POOL_SCORING = {
     calib: '这个项目集是给各业务打底座的，所以更看重跟统一治理的方向合不合、数据和合规上有没有风险。' },
 };
 
-/* 门槛参考分说明 · 弹出口径卡（随所选项目集变化） */
+/* ThresholdInfo — 门槛参考分说明的弹出口径卡（随所选项目集变化）。
+   作用：解释「综合评分≥门槛即自动立项」的六维加权口径（按项目集校准、侧重不同）。
+   状态：open 控制弹层；点外部关闭（window click + 外层 stopPropagation）。数据：POOL_SCORING。 */
 function ThresholdInfo({ pfName }) {
   const [open, setOpen] = React.useState(false);
   React.useEffect(() => {
@@ -969,6 +1032,9 @@ const SOURCE_DETAIL = {
     fields: [{ k: '对标样本', v: '6 个同业公开案例' }, { k: '测算口径', v: '坐席人月成本 × 降幅区间' }, { k: '预期收益评级', v: 'A-' }] },
 };
 
+/* RepDimSource — 分维结论的「来源」展开行。
+   作用：点击展开某个评分维度的证据来源详情（内/外部、摘录、字段）。
+   数据：SOURCE_DETAIL（mock 示意），src.mono 为索引键。open 控制展开。 */
 function RepDimSource({ src }) {
   const [open, setOpen] = React.useState(false);
   const d = SOURCE_DETAIL[src.mono];
@@ -1008,6 +1074,10 @@ function RepDimSource({ src }) {
   );
 }
 
+/* CandidatePool — 项目备选池页主体。
+   状态：loading 加载态；revDate 复盘批次日期；view 卡片/表格；met 门槛筛选；
+     cpPf 项目集；sortDir 排序；active 展开的候选详情；fbAction 复核动作。
+   rows：按项目集 + 门槛筛选 CANDIDATES 并按评分排序。每个候选携 six-dim 评分与门槛。 */
 function CandidatePool() {
   const [loading, setLoading] = React.useState(true);
   const [revDate, setRevDate] = React.useState(() => POOL_REVIEW_DATES[0]);

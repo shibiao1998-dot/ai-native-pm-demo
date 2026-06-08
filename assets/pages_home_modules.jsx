@@ -1,11 +1,16 @@
 /* ============================================================
    项目主页 · 模块分区组件（pages_home_modules.jsx）
-   每个模块独占一个区域，保留旧系统结构以降低迁移成本。
-   依赖：components.jsx（Icon/Ring/Button）、pages_home_data.jsx
-   共享回调：onOpen(detail) —— 由 ProjectHome 统一弹出详情抽屉。
+   ------------------------------------------------------------
+   作用：渲染项目主页六大模块的 UI（数据来自 pages_home_data.jsx 的 HOME_*）。
+         每个模块独占一个区域，保留旧系统结构以降低迁移成本。
+   依赖：components.jsx（Icon/Ring/Button）、pages_home_data.jsx（HOME_* 数据）。
+   关键契约：onOpen(detail) — 所有模块的「点项 → 开详情」都调这个回调，
+         由父组件 ProjectHome 统一弹出详情抽屉（detail 是一个描述该目标的对象）。
    ============================================================ */
 
-/* ---------- 共享小件 ---------- */
+/* ---------- 共享小件 ----------
+   ImpBadge 重要度徽章 / VerChip 版本片 / ModuleHead 模块头 /
+   MiniTabs 小页签（可带计数）/ ProgInline 行内进度条。 */
 function ImpBadge({ v = 5 }) {
   return <span className="hm-imp"><span className="hm-imp-k">重要度</span><span className="hm-imp-v">{v}</span></span>;
 }
@@ -47,9 +52,9 @@ function ProgInline({ p }) {
   );
 }
 
-/* ============================================================
-   模块一 · 理想化状态（分类页签 + 重要度 + 进度[新增]）
-   ============================================================ */
+/* ---------- 模块一 · 理想化状态 ----------
+   作用：展示项目终态锡点。分类页签过滤 + 重要度 + 进度环。
+   交互：cat 状态控制分类筛选；点任一行调 onOpen() 传出该理想态的详情对象。 */
 function IdealModule({ onOpen, sectionRef }) {
   const [cat, setCat] = React.useState('全部');
   const items = HOME_IDEAL.items.filter(it => cat === '全部' || it.cat === cat);
@@ -79,9 +84,8 @@ function IdealModule({ onOpen, sectionRef }) {
   );
 }
 
-/* ============================================================
-   模块二 · 目标用户（名称/定义/特征属性/市场/典型场景）
-   ============================================================ */
+/* ---------- 模块二 · 目标用户 ----------
+   作用：展示各类目标用户。sel 状态控制当前选中哪个用户，点胶囊切换右侧详情面板。 */
 function UsersModule({ sectionRef }) {
   const [sel, setSel] = React.useState(HOME_USERS[0].id);
   const u = HOME_USERS.find(x => x.id === sel) || HOME_USERS[0];
@@ -131,9 +135,8 @@ function UsersModule({ sectionRef }) {
   );
 }
 
-/* ============================================================
-   模块三 · 核心价值（干系人/优先级/实现价值/实现方式）
-   ============================================================ */
+/* ---------- 模块三 · 核心价值 ----------
+   作用：展示干系人价值。open 为「哪些卡展开」的字典，点「展开更多」切换该卡的实现方式可见性。 */
 function ValueModule({ sectionRef }) {
   const [open, setOpen] = React.useState({});
   const V = HOME_VALUE;
@@ -173,10 +176,9 @@ function ValueModule({ sectionRef }) {
   );
 }
 
-/* ============================================================
-   模块四 · 中短期目标（版本[新增] + 时间周期 + 进度[新增]）
-   ============================================================ */
-/* ---------- 统一组件：版本选择器 / 步骤条 / 目标行（中短期 · 阶段 · 周 共用） ---------- */
+/* ---------- 中短期 / 阶段 / 周 共用的三个组件 ----------
+   VersionPicker 版本选择器：variant='tabs' 为页签式；默认 'select' 为带时间周期的下拉。
+     open 状态控制下拉菜单；选中后 onChange(id) 回传父级，父级据此联动下一级（季→月→周）。 */
 function VersionPicker({ value, options, onChange, variant = 'select' }) {
   const [open, setOpen] = React.useState(false);
   const cur = options.find(o => o.id === value) || options[0] || {};
@@ -213,6 +215,7 @@ function VersionPicker({ value, options, onChange, variant = 'select' }) {
   );
 }
 
+// StepBar 步骤条：展示「审核通过 → 执行中 → 验收」进度。state: done 已完成/cur 当前/todo 待办。
 function StepBar({ items }) {
   if (!items || !items.length) return null;
   return (
@@ -230,6 +233,8 @@ function StepBar({ items }) {
   );
 }
 
+// GoalRow 目标行：全站目标列表的统一行。显示状态药丸 + 标题 + 重要度 + 承接来源 + 进度，
+// 整行可点（onClick 通常走 onOpen 开详情）。status='kapian' 时行高亮提醒。
 function GoalRow({ status, title, imp, prog, worth, source, onClick }) {
   const st = status ? HOME_STATUS[status] : null;
   return (
@@ -250,9 +255,11 @@ function GoalRow({ status, title, imp, prog, worth, source, onClick }) {
   );
 }
 
-/* ============================================================
-   模块四 · 中短期目标（季度大版本 v1.0/2.0/3.0 + 步骤条 + 统一目标行）
-   ============================================================ */
+/* ---------- 模块四 · 中短期目标 ----------
+   作用：按季度大版本（v1.0/2.0/3.0）展示中短期目标。
+   关键交互：quarter 由父级 ProjectHome 持有（因为要联动下方阶段/周模块），
+     换季时 onChangeQuarter 回传；tab 状态态本地过滤（全部/执行中/卡点/通过验收/未验收）。
+     list 里未显式给 status 的，按 prog 推导（≥100 已验收 / >0 执行中 / 否则编写中）。 */
 function MidModule({ quarter, onChangeQuarter, onOpen, sectionRef }) {
   const [tab, setTab] = React.useState('全部');
   React.useEffect(() => { setTab('全部'); }, [quarter]);
@@ -289,9 +296,9 @@ function MidModule({ quarter, onChangeQuarter, onOpen, sectionRef }) {
   );
 }
 
-/* ============================================================
-   模块五 · 阶段结项目标（时间周期 + 步骤条 + 来源中短期版本）
-   ============================================================ */
+/* ---------- 模块五 · 阶段结项目标 ----------
+   作用：按月版本展示阶段目标。month 由父级持有，随 quarter 联动（MONTHS_OF(quarter) 取可选月）。
+     每个阶段目标携 source = 「来源中短期版本」，详情里通过 up/down 与上下层互链。 */
 function PhaseModule({ quarter, month, onChangeMonth, onOpen, sectionRef }) {
   const months = MONTHS_OF(quarter);
   const mv = MONTH_OF(month) || months[0] || {};
@@ -327,9 +334,9 @@ function PhaseModule({ quarter, month, onChangeMonth, onOpen, sectionRef }) {
   );
 }
 
-/* ============================================================
-   模块六 · 周计划（对应周 + 版本 + 来源阶段 + 拆解事务）
-   ============================================================ */
+/* ---------- 模块六 · 周计划 ----------
+   作用：最细粒度层。按周展示计划及其「拆解事务」。week 随 month 联动（WEEKS_OF(month)）。
+     若该月未拆解出周，显示「规划中」空态。点周计划调 onOpen 传出该周详情（含 tasks 事务列表）。 */
 function WeekModule({ month, week, onChangeWeek, onOpen, sectionRef }) {
   const weeks = WEEKS_OF(month);
   const data = HOME_WEEK.byWeek[week] || { step: [], statusTabs: [{ k: '全部', n: 0 }], items: [] };

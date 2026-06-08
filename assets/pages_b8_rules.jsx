@@ -5,9 +5,12 @@
    ① 系统升级到你的决策点：授权 / 风险越级 / 规则确认（待我处理队列）
    ② 你主动抽查与追溯留痕（全局留痕事件流）
    规则不再是静态清单，而是可溯源、可确认（人工设定 / 决策显性化 / AI 自主进化）。
+   数据：RU_RULES 生效规则 / RU_EVENTS 留痕事件 / RU_EXTRA 事件依据，均为 mock。
    ============================================================ */
 
-/* ---------- 生效规则（可溯源 / 可确认） ---------- */
+/* ---------- 生效规则（可溯源 / 可确认） ----------
+   source: human 人工设定 / decision 由管理决策显性化 / auto AI 自主进化。
+   pending=true 的规则待管理层确认后才全域生效；govern 列出受该规则约束的 AI 技能。 */
 const RU_RULES = [
   { id: 'R-CHARTER', ico: 'clipboard-check', t: '统一立项门槛', s: '候选方向须通过战略对齐、可行性与算力配额三项校验方可立项。', source: 'human', srcText: '管理层设定 · 制度固化', by: '管理层', when: '2026-03-01', govern: ['AI 立项 · 立项门槛校验'] },
   { id: 'R-DECOMP', ico: 'git-fork', t: '理想化状态自上而下拆解', s: '目标须由理想化状态逐级拆解，每级可追溯、可验收，不漂移。', source: 'human', srcText: '管理层设定 · 制度固化', by: '管理层', when: '2026-03-01', govern: ['AI 项目负责人 · 理想化状态建模 / 目标分级拆解'] },
@@ -127,7 +130,9 @@ const RU_EXTRA = {
 
 /* ============================================================
    事件详情抽屉 · 留痕完整回溯
-   ============================================================ */
+   ------------------------------------------------------------
+   RuleEventDrawer：点某条留痕事件，用 doc_kit 展开完整回溯：概要 / 触发条件 / 决策链 /
+     依据 / 关联实体跳转。RU_EXTRA 为该事件补充「触发条件 + 依据」。 */
 function RuleEventDrawer({ ev, onClose, onNavigate }) {
   const ty = ev ? RU_TYPES[ev.type] : null;
   const rk = ev ? RU_RISK[ev.risk] : null;
@@ -205,7 +210,9 @@ function RuleEventDrawer({ ev, onClose, onNavigate }) {
 
 /* ============================================================
    规则详情抽屉 · 来源 + 确认状态 + 治理范围
-   ============================================================ */
+   ------------------------------------------------------------
+   RuleDrawer：展示一条规则的内容/来源/确认状态/治理范围/近期命中留痕。
+   isPending（待确认）时底部提供「确认生效」按钮 → onRatify(id)。 */
 function RuleDrawer({ rule, ratified, onClose, onNavigate, onRatify }) {
   React.useEffect(() => { refreshIcons(); });
   if (!rule) return null;
@@ -290,7 +297,11 @@ function RuleDrawer({ rule, ratified, onClose, onNavigate, onRatify }) {
 
 /* ============================================================
    主页面 · 治理监督台
-   ============================================================ */
+   ------------------------------------------------------------
+   RulesAndAudit：状态 filter 留痕类型筛选 / q 检索 / activeEv 事件抽屉 / activeRule 规则抽屉 /
+     ratified 已确认规则 / dismissed 已驳回规则。
+   pendingRules：本页唯一需你主动决策的事——确认规则变更（不覆盖介入工作台的项目级处置）。
+     ratifyRule / dismissRule 确认 / 驳回规则并写留痕。events 按类型+检索过滤留痕流。 */
 function RulesAndAudit({ onNavigate }) {
   const [loading, setLoading] = React.useState(true);
   const [filter, setFilter] = React.useState('all');

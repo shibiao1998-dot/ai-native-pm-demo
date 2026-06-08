@@ -1,12 +1,18 @@
 /* ============================================================
    项目主页 · 模块数据源（pages_home_data.jsx）
-   —— 沿用旧项目官网的模块结构（理想化状态 / 目标用户 / 核心价值 /
-      中短期目标 / 阶段结项目标 / 周计划），降低用户迁移成本。
-   —— 新增：理想化状态进度、各层版本 / 时间周期 / 上下层拆解。
-   领域：智能履约调度中台（与目标树同源，保持全局一致）。
+   ------------------------------------------------------------
+   作用：项目主页六大模块的全部 mock 数据。纯数据文件，渲染在 pages_home_modules.jsx。
+   ⚠ 真实开发：HOME_* / MID_VERSIONS 等均需换为后端目标/计划接口，版本工具函数可保留。
+
+   核心：五层目标体系（与「目标树」同源，保持全局一致）：
+     理想化状态 HOME_IDEAL → 中短期目标 HOME_MID → 阶段结项目标 HOME_PHASE
+        → 周计划 HOME_WEEK → 执行事务 tasks。上下层通过 up（承接上级）/ down（拆解下级）互相引用 id。
+   版本维度：中短期按季度大版本（1.0/2.0/3.0）→ 按月拆阶段小版（1.1/1.2）→ 阶段下再按周拆。
+   领域：智能履约调度中台。
    ============================================================ */
 
-/* ---------- 目标集版本（中短期 / 阶段结项 / 周计划 共用的版本维度） ---------- */
+/* ---------- 目标集版本（中短期 / 阶段结项 / 周计划 共用的版本维度） ----------
+   current: true 标记当前生效版本。 */
 const GS_VERSIONS = [
   { id: 'v2.3', period: '2026-05-14 ~ 2026-06-30', stage: '执行中', current: true },
   { id: 'v2.2', period: '2026-03-20 ~ 2026-05-13', stage: '已结项' },
@@ -161,7 +167,8 @@ const MID_VERSIONS = [
         step: [{ k: '目标审核通过', date: '待审核', state: 'todo' }, { k: '目标执行中', date: '2026-12-01 起', state: 'todo' }, { k: '验收', date: '2026-12-31', state: 'todo' }], weeks: [] },
     ] },
 ];
-/* 版本工具：季度 → 月 → 周 的动态联动查询 */
+/* 版本工具：季度 → 月 → 周 的动态联动查询（主页「版本切换器」靠它联动三级下拉）。
+   MONTHS_OF(季度id) 取该季下的月版本；MONTH_OF(月id) 跨季查月；WEEKS_OF(月id) 取该月周列表。 */
 const MONTHS_OF = (qid) => (MID_VERSIONS.find(v => v.id === qid) || MID_VERSIONS[0]).months;
 const MONTH_OF = (mid) => { for (const q of MID_VERSIONS) { const m = q.months.find(x => x.id === mid); if (m) return m; } return null; };
 const WEEKS_OF = (mid) => { const m = MONTH_OF(mid); return m ? m.weeks : []; };
@@ -371,13 +378,15 @@ const HOME_WEEK = {
   },
 };
 
-/* ---------- 状态 → 视觉映射（与目标树五态一致） ---------- */
+/* ---------- 状态 → 视觉映射（与目标树五态一致） ----------
+   全站目标/事务的状态色在此统一：draft 编写中 / run 执行中 / kapian 卡点 / accepted 已验收。 */
 const HOME_STATUS = {
   draft:    { label: '编写中', c: 'var(--text-500)', bg: 'var(--neutral-bg)', icon: 'pencil-line' },
   run:      { label: '执行中', c: 'var(--ai)', bg: 'var(--ai-soft)', icon: 'loader-2', spin: true },
   kapian:   { label: '卡点', c: 'var(--warning)', bg: 'var(--warning-bg)', icon: 'alert-triangle' },
   accepted: { label: '已验收', c: 'var(--success)', bg: 'var(--success-bg)', icon: 'circle-check' },
 };
+// HOME_LEVEL：五层目标的名称/图标/颜色映射（用于上下级承接展示）。
 const HOME_LEVEL = {
   ideal: { label: '理想化状态', icon: 'target', c: 'var(--blue-primary)' },
   mid:   { label: '中短期目标', icon: 'flag', c: 'var(--blue-primary)' },
@@ -386,6 +395,7 @@ const HOME_LEVEL = {
   task:  { label: '执行事务', icon: 'square-check-big', c: 'var(--success)' },
 };
 
+// progColor：进度百分比 → 颜色（≥80 绿 / ≥40 蓝 / 其余 黄），全站进度条取色一致。
 const progColor = (p) => p >= 80 ? 'var(--success)' : p >= 40 ? 'var(--blue-primary)' : 'var(--warning)';
 
 Object.assign(window, {

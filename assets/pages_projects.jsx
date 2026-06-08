@@ -1,12 +1,17 @@
 /* ============================================================
    页面 1.2 · 全部项目列表（组合级 · 浏览 / 检索 / 下钻）
+   ------------------------------------------------------------
+   作用：workbench 下的项目列表页。支持表格/卡片两种视图、多维筛选、检索、排序，
+         点任一行/卡 → onEnterProject 进入该项目专属工作区。
+   数据来源：PROJECTS / HEALTH / PORTFOLIOS 均为 mock，定义在本文件（也被 portal 复用）。
    ============================================================ */
 
+// 健康态 → 药丸颜色调的映射。
 const HEALTH = {
   健康: { tone: 'success' }, 关注: { tone: 'warning' }, 卡点: { tone: 'danger' }
 };
 
-/* 项目集（每个项目集有对应负责人 / 管理者） */
+/* 项目集（每个项目集有对应负责人 / 管理者）。PF_NAME 是 id→名称的快查表。 */
 const PORTFOLIOS = [
   { id: 'service', name: '客户服务自助化', owner: '苏婧' },
   { id: 'fulfill', name: '履约与供应链', owner: '何沛' },
@@ -34,6 +39,10 @@ const PROJECTS = [
 
 const OWNERS = ['何沛', '苏婧', '林越', '周岚'];
 
+/* FilterChip — 可展开的筛选下拉片。
+   UI 状态机：open 控制菜单展开；开启后在 window 上监听一次 click 实现「点外部关闭」，
+     外层容器 stopPropagation 防止点自身又触发关闭。
+   受控：value 当前值由父级持有，onChange 回传；value≠首项（“全部”）时高亮表示已筛选。 */
 function FilterChip({ label, options, value, onChange }) {
   const [open, setOpen] = React.useState(false);
   React.useEffect(() => {
@@ -62,6 +71,10 @@ function FilterChip({ label, options, value, onChange }) {
 
 }
 
+/* ProjectsList — 项目列表页主体。
+   状态：view 表格/卡片；density 表格密度；q 检索词；f* 五个筛选维度；sortKey/sortDir 排序。
+   加载态：挂载后 1s 的 setTimeout 模拟请求（loading），期间显示 <PlSkel> 骨架。
+     ⚠ 真实开发：换为真实数据请求的 loading。 */
 function ProjectsList({ onEnterProject }) {
   const [loading, setLoading] = React.useState(true);
   const [view, setView] = React.useState('table');
@@ -80,6 +93,8 @@ function ProjectsList({ onEnterProject }) {
     return () => clearTimeout(t);
   }, []);
 
+  // rows：按全部筛选条件过滤 PROJECTS，再按 sortKey/sortDir 排序。
+  // 任一筛选/检索/排序变量变化则重算（useMemo 依赖数组）。
   const rows = React.useMemo(() => {
     let v = PROJECTS.filter((p) =>
     (fHealth === '全部' || p.health === fHealth) && (
@@ -96,6 +111,7 @@ function ProjectsList({ onEnterProject }) {
     return v;
   }, [q, fHealth, fMode, fKapian, fOwner, fPf, sortKey, sortDir]);
 
+  // 点表头切换排序：同一列再点则升/降序互切，否则换列并默认降序。
   const toggleSort = (k) => {
     if (sortKey === k) setSortDir((d) => d === 'desc' ? 'asc' : 'desc');else
     {setSortKey(k);setSortDir('desc');}

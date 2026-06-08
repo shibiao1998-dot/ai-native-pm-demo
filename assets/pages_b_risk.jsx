@@ -1,9 +1,12 @@
 /* ============================================================
-   风险与卡点（项目专属工作区 · p-risk）
-   项目级风险登记册：列表 → 完整风险档案（等级 / 影响 / 应对 / 责任 AI）。
-   风险由风险预警 Agent 持续识别、分级与跟踪，管理层可介入。
+   风险事件（项目专属工作区 · p-risk）
+   ------------------------------------------------------------
+   作用：项目级风险登记册：列表 → 完整风险档案（等级 / 影响 / 应对 / 责任 AI）。
+         风险由风险预警 Agent 持续识别、分级与跟踪，管理层可介入。
+   数据：RK_RISKS 为 mock。escalated=true 的风险已越界上抛介入工作台。
    ============================================================ */
 
+/* 风险等级 / 状态 / 类别 的映射表。 */
 const RK_LEVEL = {
   high: { label: '高', c: 'var(--danger)', bg: 'var(--danger-bg)', tone: 'danger' },
   mid:  { label: '中', c: 'var(--warning)', bg: 'var(--warning-bg)', tone: 'warning' },
@@ -41,7 +44,7 @@ const RK_RISKS = [
     ],
   },
   {
-    id: 'RK-0137-02', level: 'high', cat: 'tech', status: 'open', owner: '风险预警 Agent',
+    id: 'RK-0137-02', level: 'high', cat: 'tech', status: 'open', owner: '风险预警 Agent', escalated: true,
     title: '调度 AI 员工调用超时率突增', found: '今日', goal: '中短期目标：调度时效提升 30%',
     desc: '调度 AI 员工调用超时率由 1.1% 突增至 6.2%，超过实时阈值（5%），已自动降级保护，但根因（算力 / 依赖服务）待核查。',
     impactStats: [{ v: '6.2%', k: '调用超时率', deltaTone: 'danger', delta: '突增' }, { v: '5%', k: '实时阈值' }, { v: '已降级', k: '保护状态', deltaTone: 'warning' }],
@@ -98,8 +101,10 @@ const RK_RISKS = [
   },
 ];
 
-/* ---------- 风险档案抽屉 ---------- */
-function RiskDrawer({ risk, onClose }) {
+/* ---------- 风险档案抽屉 ----------
+   RiskDrawer：用 doc_kit 拼装出完整风险档案（概要/描述/影响面/应对方案/责任 AI/留痕）。
+   escalated 风险额外显「已上抛介入工作台」跳转入口。 */
+function RiskDrawer({ risk, onClose, onNavigate }) {
   if (!risk) return null;
   const lv = RK_LEVEL[risk.level];
   const st = RK_STATUS[risk.status];
@@ -111,7 +116,7 @@ function RiskDrawer({ risk, onClose }) {
       icon={{ name: 'alert-triangle', color: lv.c }}
       headRight={
         <FeedbackEntry label="反馈"
-          context={{ scene: '风险与卡点 · 风险档案', did: `当前查看「${risk.title}」的完整风险档案（等级、影响、应对方案与责任 AI）`, ask: '该风险的定级、影响判断或应对方案' }}
+          context={{ scene: '风险事件 · 风险档案', did: `当前查看「${risk.title}」的完整风险档案（等级、影响、应对方案与责任 AI）`, ask: '该风险的定级、影响判断或应对方案' }}
           onClick={() => {}} />
       }>
       <DocDoc>
@@ -156,6 +161,16 @@ function RiskDrawer({ risk, onClose }) {
                 ? '风险待处置，已上抛介入工作台，部分自动化保护措施已生效，剩余动作需管理层 / 现场介入。'
                 : '风险预警 Agent 正按应对方案持续处置与观察，达到收敛条件后自动闭环。'}
           </DocVerdict>
+          {risk.escalated && (
+            <button className="rk-esc-link" onClick={() => onNavigate && onNavigate('p-intervene')}>
+              <span className="rk-esc-link-ico"><Icon name="git-pull-request-arrow" size={16} color="var(--warning)" /></span>
+              <span className="rk-esc-link-main">
+                <span className="rk-esc-link-k">该风险已越界 · 上抛介入工作台</span>
+                <span className="rk-esc-link-v">前往「介入工作台」由人工拍板处置</span>
+              </span>
+              <Icon name="arrow-up-right" size={16} color="var(--text-400)" />
+            </button>
+          )}
         </DocSec>
 
         <DocSec no="06" title="留痕" icon="history">
@@ -166,7 +181,9 @@ function RiskDrawer({ risk, onClose }) {
   );
 }
 
-/* ---------- 主页面 ---------- */
+/* ---------- 主页面 ----------
+   RiskRegister：状态 active 当前档案；filter 筛选（high/mid/low/open）。
+   counts 按等级/状态统计；list 按筛选过滤。点行开风险档案抽屉。 */
 function RiskRegister({ project, onNavigate }) {
   const [loading, setLoading] = React.useState(true);
   const [active, setActive] = React.useState(null);
@@ -176,24 +193,24 @@ function RiskRegister({ project, onNavigate }) {
   React.useEffect(() => { const t = setTimeout(() => setLoading(false), 700); return () => clearTimeout(t); }, []);
   React.useEffect(() => { refreshIcons(); });
 
-  const counts = { high: 0, mid: 0, low: 0, open: 0 };
-  RK_RISKS.forEach(r => { counts[r.level]++; if (r.status !== 'closed') counts.open++; });
+  const counts = { high: 0, mid: 0, low: 0, open: 0, closed: 0, auto: 0, escalated: 0 };
+  RK_RISKS.forEach(r => { counts[r.level]++; if (r.status !== 'closed') counts.open++; if (r.status === 'closed') counts.closed++; if (r.status === 'mitigating' || r.status === 'watching') counts.auto++; if (r.escalated) counts.escalated++; });
 
   const list = RK_RISKS.filter(r => filter === 'all' ? true : filter === 'open' ? r.status !== 'closed' : r.level === filter);
 
   return (
     <div className="content-inner page-fade">
-      <Breadcrumb items={[{ label: p.name }, { label: '风险与卡点' }]} />
+      <Breadcrumb items={[{ label: p.name }, { label: '风险事件' }]} />
       <div className="page-head">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="page-head-ico"><Icon name="alert-triangle" size={22} color="var(--blue-primary)" /></span>
+          <span className="page-head-ico"><Icon name="radar" size={22} color="var(--blue-primary)" /></span>
           <div>
-            <h1 className="t-h1">风险与卡点</h1>
+            <h1 className="t-h1">风险事件</h1>
           </div>
         </div>
         <div className="page-head-right">
           <FeedbackEntry
-            context={{ scene: '风险与卡点', did: `本项目当前有 ${counts.open} 条未闭环风险（高 ${counts.high} / 中 ${counts.mid} / 低 ${counts.low}），由风险预警 Agent 跟踪`, ask: '某条风险的定级、影响或应对方案' }}
+            context={{ scene: '风险事件', did: `本项目当前有 ${counts.open} 条未闭环风险（高 ${counts.high} / 中 ${counts.mid} / 低 ${counts.low}），由风险预警 Agent 自治跟踪`, ask: '某条风险的定级、影响或应对方案' }}
             onClick={() => setToast({ msg: '异步反馈入口已打开（演示）' })} />
         </div>
       </div>
@@ -219,14 +236,17 @@ function RiskRegister({ project, onNavigate }) {
                 name={r.title}
                 badges={<span className="dk-chip" style={{ color: lv.c, background: lv.bg }}>{lv.label}风险</span>}
                 meta={<><span className="mono">{r.id}</span><span>{RK_CAT[r.cat]}</span><span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="bot" size={12} color="var(--ai)" />{r.owner}</span><span>发现 {r.found}</span></>}
-                aside={<span className="dk-chip" style={{ color: st.c, background: st.bg }}><Icon name={st.icon} size={12} color={st.c} />{st.label}</span>}
+                aside={<>
+                  {r.escalated && <span className="rk-esc" role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); onNavigate && onNavigate('p-intervene'); }} title="该风险已越界，上抛介入工作台待人工拍板"><Icon name="git-pull-request-arrow" size={12} color="var(--warning)" />已上抛介入<Icon name="arrow-up-right" size={11} color="var(--warning)" /></span>}
+                  <span className="dk-chip" style={{ color: st.c, background: st.bg }}><Icon name={st.icon} size={12} color={st.c} />{st.label}</span>
+                </>}
                 onClick={() => setActive(r)} />
             );
           })}
         </div>
       )}
 
-      <RiskDrawer risk={active} onClose={() => setActive(null)} />
+      <RiskDrawer risk={active} onClose={() => setActive(null)} onNavigate={onNavigate} />
       <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );

@@ -1,9 +1,10 @@
 /* ============================================================
    批 9 · 页面 9.3 · 权限系统（RBAC · 组合级治理）
-   模型：角色 = 权限模板，集中维护；成员 = 被赋予角色标签，自动继承该角色权限。
-   · 上：四个角色卡片 = 各自的「权限模板维护入口」（编辑该角色的查看 / 编辑权限 + 工作台准入）。
-   · 下：成员表（可检索）= 为每个成员分配角色；成员权限随角色走，只读展示。
-   · 主开关：精细化权限控制 —— 开启后可维护角色模板并分配角色。
+   ------------------------------------------------------------
+   作用：RBAC 权限模型。角色 = 权限模板（集中维护）；成员 = 被赋予角色标签、自动继承该角色权限。
+         上：四个角色卡 = 各自的权限模板维护入口；下：成员表（可检索）= 为成员分配角色。
+         主开关：精细化权限控制 — 开启后可维护模板并分配角色（否则全只读）。
+   数据：PM_PERSONAS 角色 / PM_RES 权限资源 / PM_MEMBERS 成员，均为 mock。
    ============================================================ */
 
 const PM_PERSONAS = [
@@ -23,6 +24,7 @@ const PM_AVATAR_C = { admin: 'var(--blue-primary)', pflead: '#7C3AED', projlead:
 const PM_RES = [
   { group: '组合级 · 项目管理工作台', icon: 'layout-dashboard', items: [
     { id: 'intervene', t: '介入处置', s: '决策 / 卡点 / 问题 / 审批', scoped: true },
+    { id: 'closure', t: '结项审批', s: '跨项目终点闸门 / 拍板' },
     { id: 'charter', t: '立项与战略', s: '备选池 / 自动立项 / 战略意图' },
     { id: 'cost', t: '算力与成本看板', s: '组合级费用与配额' },
     { id: 'staff', t: 'AI 员工与技能', s: 'AI 项目操作 / 技能迭代' },
@@ -34,8 +36,7 @@ const PM_RES = [
     { id: 'p-goal', t: '目标拆解与目标树', s: '' },
     { id: 'p-exec', t: '执行事务', s: '' },
     { id: 'p-accept', t: '验收与闭环', s: '' },
-    { id: 'p-risk', t: '风险与卡点', s: '' },
-    { id: 'p-close', t: '结项', s: '' },
+    { id: 'p-risk', t: '风险事件', s: '' },
     { id: 'p-cost', t: '项目费用', s: '' },
   ] },
 ];
@@ -43,7 +44,8 @@ const PM_RES_FLAT = PM_RES.flatMap(g => g.items);
 const PM_COMBO_IDS = PM_RES[0].items.map(i => i.id);
 const PM_PROJ_IDS = PM_RES[1].items.map(i => i.id);
 
-/* 角色默认权限模板：none | view | edit（edit 含 view） */
+/* 角色默认权限模板：none 无 | view 查看 | edit 编辑（edit 含 view）。
+   pmDefaultPerms(roleId)：生成某角色的默认权限表（admin 全 edit；pflead 本集可编；projlead 仅项目级；viewer 只读）。 */
 function pmDefaultPerms(roleId) {
   const all = {};
   PM_RES_FLAT.forEach(it => all[it.id] = 'none');
@@ -51,7 +53,7 @@ function pmDefaultPerms(roleId) {
     PM_RES_FLAT.forEach(it => all[it.id] = 'edit');
   } else if (roleId === 'pflead') {
     all.intervene = 'edit'; all.charter = 'view'; all.cost = 'view'; all.staff = 'edit';
-    all.knowledge = 'edit'; all.rules = 'view'; all.perm = 'none';
+    all.knowledge = 'edit'; all.rules = 'view'; all.perm = 'none'; all.closure = 'edit';
     PM_PROJ_IDS.forEach(id => all[id] = 'edit');
   } else if (roleId === 'projlead') {
     PM_PROJ_IDS.forEach(id => all[id] = 'edit');
@@ -93,7 +95,9 @@ function pmCount(perms, ids) {
   return { edit, view };
 }
 
-/* ---------- 权限矩阵（角色编辑 / 成员只读共用） ---------- */
+/* ---------- 权限矩阵（角色编辑 / 成员只读共用） ----------
+   PermMatrix：按资源分组呈现查看/编辑勾选格。editable=false 时只读；
+   无工作台准入的角色在组合级资源上显「无准入」锁。onToggle(resId,kind) 切换。 */
 function PermMatrix({ perms, wb, scopedRole, editable, onToggle }) {
   React.useEffect(() => { refreshIcons(); });
   const cell = (resId, kind) => {
@@ -137,7 +141,8 @@ function PermMatrix({ perms, wb, scopedRole, editable, onToggle }) {
   );
 }
 
-/* ---------- 角色权限模板抽屉（集中维护） ---------- */
+/* ---------- 角色权限模板抽屉（集中维护） ----------
+   RoleDrawer：编辑某角色的工作台准入 + 权限矩阵。改动应用到该角色全部成员（模板集中维护）。 */
 function RoleDrawer({ roleId, perms, wb, editable, onTogglePerm, onToggleWb, onReset, onClose }) {
   React.useEffect(() => { refreshIcons(); });
   if (!roleId) return null;
@@ -188,7 +193,8 @@ function RoleDrawer({ roleId, perms, wb, editable, onTogglePerm, onToggleWb, onR
   );
 }
 
-/* ---------- 成员抽屉（分配角色 · 权限随角色继承只读） ---------- */
+/* ---------- 成员抽屉（分配角色 · 权限随角色继承只读） ----------
+   MemberDrawer：为成员分配角色（onAssignRole）；下方「继承的权限」为只读，来自所属角色模板。 */
 function MemberDrawer({ member, role, rolePerms, roleWb, editable, onAssignRole, onOpenRole, onClose, onEnterProject }) {
   React.useEffect(() => { refreshIcons(); });
   if (!member) return null;
@@ -251,7 +257,10 @@ function MemberDrawer({ member, role, rolePerms, roleWb, editable, onAssignRole,
   );
 }
 
-/* ---------- 主页面 ---------- */
+/* ---------- 主页面 ----------
+   PermissionSettings：状态 custom 精细化权限总开关（决定可否编辑）；
+     rolePerms 各角色权限表 / roleWb 工作台准入 / roleMap 成员→角色。
+   togglePerm/toggleWb/resetRole 维护角色模板；assignRole 为成员改角色。 */
 function PermissionSettings({ onNavigate, onEnterProject }) {
   const [loading, setLoading] = React.useState(true);
   const [roleFilter, setRoleFilter] = React.useState('all');

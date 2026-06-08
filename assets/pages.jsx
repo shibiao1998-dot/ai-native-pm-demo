@@ -1,8 +1,15 @@
 /* ============================================================
-   页面 — 组合级总览首页 + 占位页
+   页面 — pages.jsx
+   ------------------------------------------------------------
+   作用：项目总览首页的外壳 + 一批共享的看板组件（指标卡/总看板/健康分布）
+         + 未交付页面的「占位页」。
+   数据来源：COST_TREND / RUN_TREND 等为写死的 mock 趋势数组；看板大数字也是硬编码。
+             真实开发需换为后端汇总接口。
    ============================================================ */
 
-/* ---------- 状态演示分段控件 ---------- */
+/* ---------- 状态演示分段控件 ----------
+   作用：演示用的三态切换器（骨架/正常/空态），用于展示同一区域的不同加载态。
+   受控组件：value 由父级持有，onChange 回传选中值。 */
 function StateSeg({ value, onChange }) {
   const opts = [['loading', '骨架'], ['ready', '正常'], ['empty', '空态']];
   return (
@@ -14,7 +21,11 @@ function StateSeg({ value, onChange }) {
   );
 }
 
-/* ---------- 指标卡 ---------- */
+/* ---------- 指标卡 MetricCard ----------
+   作用：首页顶部的单个数据指标卡（图标 + 标题 + 大数字 + 同比 + 可选跳转链接）。
+   关键交互：clickable=true 时整张数字区可点，点击走 onClick（通常跳介入工作台），
+     底部显示 linkLabel 引导文案。大数字用 <CountUp> 滚动动画。
+   props：delta 同比值（正负决定上/下箭头）；deltaTone success|danger 决定颜色；sub 副文本。 */
 function MetricCard({ icon, iconColor, label, value, decimals = 0, prefix = '', delta, deltaTone, deltaText, sub, clickable, onClick, linkLabel = '进入介入工作台' }) {
   return (
     <div className="metric-card">
@@ -42,6 +53,7 @@ function MetricCard({ icon, iconColor, label, value, decimals = 0, prefix = '', 
   );
 }
 
+// MetricCardSkel：指标卡的骨架态（加载中占位）。
 function MetricCardSkel() {
   return (
     <div className="metric-card">
@@ -52,77 +64,38 @@ function MetricCardSkel() {
   );
 }
 
+// 看板趋势图的 mock 数据（近 16 周）。⚠ 真实开发替换为后端时间序列。
 const COST_TREND = [38,41,40,44,46,43,49,52,50,55,58,54,61,64,62,68];
 const RUN_TREND  = [120,128,124,140,150,143,162,170,168,182,188,178,196,210,205,224];
 
-/* ---------- 组合级总览首页 ---------- */
-function HomePage({ onNavigate }) {
-  const [state, setState] = React.useState('loading');
-  React.useEffect(() => {
-    if (state !== 'loading') return;
-    const t = setTimeout(() => setState('ready'), 1100);
-    return () => clearTimeout(t);
-  }, [state]);
-
+/* ---------- 组合级总览首页（项目总览看板） ----------
+   作用：workbench 默认落页。只负责页头 + 面包屑，主体看板委托给 <OverviewBoard>（pages_home_board.jsx）。
+   props：onNavigate 页内跳转；onEnterProject 进入项目。 */
+function HomePage({ onNavigate, onEnterProject }) {
   return (
     <div className="content-inner page-fade">
       <Breadcrumb items={[{ label: '项目管理工作台' }, { label: '项目总览' }]} />
       <div className="page-head">
-        <div>
-          <h1 className="t-h1">项目总览</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span className="page-head-ico"><Icon name="layout-dashboard" size={22} color="var(--blue-primary)" /></span>
+          <div>
+            <h1 className="t-h1">项目总览看板</h1>
+          </div>
         </div>
         <div className="page-head-right">
-          <Button variant="secondary" size="sm" icon="refresh-cw" onClick={() => setState('loading')}>刷新</Button>
+          <Button variant="secondary" size="sm" icon="box" onClick={() => onNavigate('projects')}>项目列表</Button>
+          <Button variant="secondary" size="sm" icon="gauge" onClick={() => onNavigate('cost-board')}>算力总看板</Button>
         </div>
       </div>
 
-      {state === 'empty' ? (
-        <Card style={{ marginTop: 8 }}>
-          <EmptyState
-            glyph="layout-dashboard"
-            title="暂无在运行项目"
-            desc="项目备选池经战略层分析、立项通过后将自动沉淀至此。当前组合中尚无正式立项的项目。"
-            action={<Button variant="primary" icon="inbox" onClick={() => onNavigate('pool')}>前往项目备选池</Button>}
-          />
-        </Card>
-      ) : (
-        <>
-          {/* 三枚核心指标 */}
-          <div className="metric-row">
-            {state === 'loading' ? (
-              <><MetricCardSkel /><MetricCardSkel /><MetricCardSkel /></>
-            ) : (
-              <>
-                <MetricCard icon="box" iconColor="var(--blue-primary)" label="在运行项目总数" value={187}
-                  delta={6} deltaTone="neutral" deltaText=" 较上周" sub="覆盖 12 个战略方向" clickable
-                  onClick={() => onNavigate('projects')} linkLabel="查看全部项目" />
-                <MetricCard icon="circle-check" iconColor="var(--success)" label="健康项目数" value={142}
-                  delta={4} deltaTone="success" deltaText=" 较上周" sub="健康占比 76%" />
-                <MetricCard icon="alert-triangle" iconColor="var(--danger)" label="异常或卡点项目数" value={11}
-                  delta={3} deltaTone="danger" deltaText=" 较上周" sub="6 项待人工拍板" clickable
-                  onClick={() => onNavigate('intervene')} />
-              </>
-            )}
-          </div>
-
-          {/* 项目集总看板 + 健康分布 */}
-          <div className="board-row">
-            {state === 'loading' ? (
-              <><BoardSkel /><DistSkel /></>
-            ) : (
-              <>
-                <PortfolioBoard onNavigate={onNavigate} />
-                <HealthDist onNavigate={onNavigate} />
-              </>
-            )}
-          </div>
-        </>
-      )}
+      <OverviewBoard onNavigate={onNavigate} onEnterProject={onEnterProject} />
     </div>
   );
 }
 
-/* ---------- 项目集总看板卡 ---------- */
+/* ---------- 项目集总看板卡 PortfolioBoard ----------
+   作用：首页「算力总看板」概览卡（总成本/运行次数/总费用 + 两条趋势图）。
+   所有数值为 mock；底部链接点击 onNavigate('cost-board') 跳算力总看板明细。 */
 function PortfolioBoard({ onNavigate }) {
   return (
     <Card className="board-card" pad>
@@ -176,7 +149,10 @@ function PortfolioBoard({ onNavigate }) {
   );
 }
 
-/* ---------- 组合健康分布 ---------- */
+/* ---------- 组合健康分布 HealthDist ----------
+   作用：用进度环 + 分段条展示项目集「健康/需关注/卡点」占比。
+   关键交互：只有「卡点」(danger) 图例可点，点击 onNavigate('intervene') 跳介入工作台
+     —— 引导用户从「发现问题」直接走到「处理问题」。segs/total 为 mock。 */
 function HealthDist({ onNavigate }) {
   const segs = [
     { label: '健康', n: 142, tone: 'success' },
@@ -241,7 +217,10 @@ function DistSkel() {
   );
 }
 
-/* ---------- 占位页（后续批次产出） ---------- */
+/* ---------- 占位页 PlaceholderPage ----------
+   作用：未实现页面的统一占位（路由分发表未命中时的兑底）。
+   实现逻辑：根据 id 查 PAGE_TITLES 取 [标题, 图标, 分组]；p-* 开头走项目面包屑。
+   PAGE_TITLES：页面 id → 展示信息的映射表，加新页面时补一行即可。 */
 const PAGE_TITLES = {
   strategy: ['战略意图识别', 'compass', '项目管理工作台'],
   pool: ['项目备选池', 'inbox', '项目管理工作台'],
@@ -256,9 +235,9 @@ const PAGE_TITLES = {
   'p-intervene': ['介入工作台', 'hand', '项目专属工作区'],
   'p-task': ['执行事务', 'square-check-big', '项目专属工作区'],
   'p-accept': ['验收与闭环', 'circle-check', '项目专属工作区'],
-  'p-risk': ['风险与卡点', 'alert-triangle', '项目专属工作区'],
-  'p-close': ['结项', 'package-check', '项目专属工作区'],
+  'p-risk': ['风险事件', 'alert-triangle', '项目专属工作区'],
   'p-cost': ['项目费用看板', 'gauge', '项目专属工作区'],
+  'closure': ['结项审批', 'package-check', '项目管理工作台'],
 };
 function PlaceholderPage({ id, inProject, project = SAMPLE_PROJECT }) {
   const [title, icon, group] = PAGE_TITLES[id] || ['页面', 'box', ''];

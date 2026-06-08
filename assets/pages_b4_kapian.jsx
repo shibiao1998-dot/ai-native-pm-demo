@@ -1,7 +1,9 @@
 /* ============================================================
    页面 4.2 · 卡点处置（项目专属 · 管理层介入）
-   某关键要素审核反复仍不通过（AI 往返多轮无法解决）→ 升级卡点。
-   卡点上下文 + 关联链路 + AI 尝试摘要 + 处置动作（修改方向 / 放行 / 驳回返工）
+   ------------------------------------------------------------
+   作用：某关键要素审核反复仍不通过（AI 往返多轮无法解决）→ 升级卡点，由人工处置。
+         呈现：卡点上下文 + 关联链路 + AI 尝试摘要 + 处置动作（修改方向/放行/驳回返工）。
+   依赖：复用 pages_b4.jsx 的 SEV/RoundItem/buildRecord；节点取自 NODE_MAP。
    ============================================================ */
 
 const KP_SEV = window.SEV;
@@ -9,10 +11,14 @@ const KP_RoundItem = window.RoundItem;
 const KP_MAP = window.NODE_MAP;
 const KP_NL = window.NODE_LEVEL;
 
+/* KapianDisposal — 卡点处置页主体。
+   状态：demo 演示有/无卡点；stage open/resolved；pending 当前待确认动作；reason 理由。
+   动作：给出修改方向（需理由）/ 放行 / 驳回返工（需理由）—— commit 二步确认后置 resolved 并写留痕。
+   nodeId 可由其他页跳转携带（定位到具体卡点节点）。 */
 function KapianDisposal({ nodeId, onNavigate }) {
-  const [demo, setDemo] = React.useState('filled');   // filled | empty（演示空态）
-  const [stage, setStage] = React.useState('open');   // open | resolved
-  const [pending, setPending] = React.useState(null); // 当前待确认动作
+  const [demo, setDemo] = React.useState('filled');   // filled 有卡点 | empty 演示空态
+  const [stage, setStage] = React.useState('open');   // open 待处置 | resolved 已处置
+  const [pending, setPending] = React.useState(null); // 当前待确认动作（需理由的动作首点进入此态）
   const [reason, setReason] = React.useState('');
   const [toast, setToast] = React.useState(null);
 

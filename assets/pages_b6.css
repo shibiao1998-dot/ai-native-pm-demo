@@ -52,6 +52,8 @@
 .ac-row-main { min-width: 0; flex: 1; }
 .ac-row-level { font-size: 11px; font-weight: 600; letter-spacing: .03em; color: var(--text-400); display: flex; align-items: center; gap: 7px; }
 .ac-row-level .agg { font-family: var(--font-mono); font-weight: 600; color: var(--text-500); background: var(--neutral-bg); border-radius: var(--r-xs); padding: 0 6px; font-size: 10px; }
+.ac-row-level .ac-ver { font-family: var(--font-mono); font-weight: 700; color: var(--blue-primary); background: var(--blue-tint); border: 1px solid var(--blue-border); border-radius: var(--r-xs); padding: 0 6px; font-size: 10.5px; letter-spacing: 0; }
+.ac-row-level .ac-ver-sub { font-weight: 600; color: var(--text-500); font-size: 10.5px; letter-spacing: 0; }
 .ac-row-title { font-size: 15px; font-weight: 600; color: var(--text-900); margin-top: 3px; text-wrap: pretty; }
 
 /* 达成率指标组 */
@@ -201,7 +203,8 @@
 .pa-tl-node { width: 14px; height: 14px; border-radius: 999px; border: 3px solid #fff; background: var(--success); flex: none; margin-top: 3px; box-shadow: 0 0 0 2px var(--success); position: relative; z-index: 2; }
 .pa-tl-node.blue { background: var(--blue-primary); box-shadow: 0 0 0 2px var(--blue-primary); }
 .pa-tl-card { flex: 1; min-width: 0; background: var(--canvas); border: 1px solid var(--border-200); border-radius: var(--r-md); padding: 13px 16px; }
-.pa-tl-card-top { display: flex; align-items: center; gap: 10px; }
+.pa-tl-card-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pa-tl-ver { font-size: 11px; font-weight: 600; color: var(--blue-primary); background: var(--blue-tint); border: 1px solid var(--blue-border); border-radius: var(--r-xs); padding: 1px 7px; white-space: nowrap; flex: none; }
 .pa-tl-lock { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 600; color: var(--success); background: var(--success-bg); border-radius: var(--r-full); padding: 2px 8px; flex: none; margin-left: auto; }
 .pa-tl-title { font-size: 13.5px; font-weight: 600; color: var(--text-900); }
 .pa-tl-delta { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--success); flex: none; }

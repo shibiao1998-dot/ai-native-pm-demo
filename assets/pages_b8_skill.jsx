@@ -1,13 +1,13 @@
 /* ============================================================
    批 8 · 技能详情（组合级 · 治理）
-   进入某 AI 员工的技能库后，点开一个技能：
-   功能介绍 + 调用契约 + 内部逻辑与底层 Prompt（结构化展示）
-   + 自然语言迭代（输入 → 预演方案 → 确认落实）
-   + 版本控制与回滚（一改一版本 · 非破坏性）
-   + 进化日志（人为干预 / 自主进化 · 决策记录）
+   ------------------------------------------------------------
+   作用：进入某 AI 员工的技能库后，点开一个技能的完整详情：
+         功能介绍 + 调用契约 + 内部逻辑与底层 Prompt（结构化展示）
+         + 自然语言迭代（输入 → 预演方案 → 确认落实）
+         + 版本控制与回滚（一改一版本 · 非破坏性）+ 进化日志（人为干预 / 自主进化）。
    ============================================================ */
 
-/* 版本号自增（minor +1） */
+/* bumpVer — 版本号自增（minor +1，如 v3.2 → v3.3）。 */
 function bumpVer(v) {
   const m = String(v).replace(/^v/, '').split('.');
   const major = parseInt(m[0] || '1', 10);
@@ -23,10 +23,13 @@ const SK_SRC = {
 
 /* ============================================================
    自然语言迭代面板
-   ============================================================ */
+   ------------------------------------------------------------
+   SkillIterationPanel：状态机 stage：input 输入 → thinking 预演中 → plan 展示修改方案
+     → applied 已落实（生成新版本）。buildPlan 把一句话识别为对底层 prompt 的修改方案（前/后 diff）。
+   确认后 onApply(plan) 回传父级生成新版。⚠ 预演为演示，真实开发走后端/大模型。 */
 function SkillIterationPanel({ skill, nextVer, onApply }) {
   const [text, setText] = React.useState('');
-  const [stage, setStage] = React.useState('input'); // input | thinking | plan | applied
+  const [stage, setStage] = React.useState('input'); // input 输入 | thinking 预演中 | plan 方案 | applied 已落实
   const [plan, setPlan] = React.useState(null);
   const [appliedVer, setAppliedVer] = React.useState(null);
   const taRef = React.useRef(null);
@@ -142,7 +145,8 @@ function SkillIterationPanel({ skill, nextVer, onApply }) {
 
 /* ============================================================
    版本内容查看（抽屉）
-   ============================================================ */
+   ------------------------------------------------------------
+   VersionSnapshot：只读查看某个历史版本的信息、核心变更与进化来源。 */
 function VersionSnapshot({ skill, version, curVer, evolution, onClose }) {
   React.useEffect(() => { refreshIcons(); });
   if (!version) return null;
@@ -183,7 +187,10 @@ function VersionSnapshot({ skill, version, curVer, evolution, onClose }) {
 
 /* ============================================================
    技能详情主页面
-   ============================================================ */
+   ------------------------------------------------------------
+   SkillDetail：状态 versions 版本列表 / evolution 进化日志 / curVer 当前版 / snapVer 查看版 / rollbackVer 回滚确认。
+   applyIteration：落实一次迭代 → 插入新版本 + 进化日志并设为当前版（一改一版）。
+   doRollback：回滚到某版 — 只改「当前版」指针，后续版本不作废、保留为历史（非破坏性）。 */
 function SkillDetail({ staff, skill, onBackList, onBackEmployee, onToast }) {
   const [versions, setVersions] = React.useState(() => skill.versions.map(v => ({ ...v })));
   const [evolution, setEvolution] = React.useState(() => skill.evolution.map(e => ({ ...e })));

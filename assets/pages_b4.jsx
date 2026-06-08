@@ -1,16 +1,18 @@
 /* ============================================================
    批 4 · 逐环审核（4.1） + 卡点处置（4.2）  —  项目专属
-   承接批 0 设计系统、批 3 目标树（NODE_MAP / NODE_STATUS …）
-   拆解链每个关键要素三段：编写 → 审核 → 展示；反复不过即卡点。
+   ------------------------------------------------------------
+   作用：拆解链上每个关键要素的「编写 → 审核 → 展示」三段流水；
+         反复审核不过即升级为卡点。本文件是 4.1 逐环审核（LoopReview）。
+   依赖：承接批 0 设计系统、批 3 目标树（NODE_MAP / NODE_STATUS / NODE_LEVEL / GOAL_TREE）。
    ============================================================ */
 
-const B4_NS = window.NODE_STATUS;      // 节点状态
-const B4_NL = window.NODE_LEVEL;       // 节点层级
-const B4_PC = window.PROG_COLOR;       // 推进度颜色
-const B4_TREE = window.GOAL_TREE;
-const B4_MAP = window.NODE_MAP;
+const B4_NS = window.NODE_STATUS;      // 节点状态表
+const B4_NL = window.NODE_LEVEL;       // 节点层级表
+const B4_PC = window.PROG_COLOR;       // 推进度颜色函数
+const B4_TREE = window.GOAL_TREE;      // 目标树
+const B4_MAP = window.NODE_MAP;        // 扁平化节点索引
 
-/* 段位定义 */
+/* 段位定义：编写 / 审核 / 展示三段。 */
 const SEG = {
   write:  { key: 'write',  label: '编写', icon: 'pencil-line' },
   review: { key: 'review', label: '审核', icon: 'shield-check' },
@@ -25,7 +27,8 @@ const SEV = {
   minor:   { label: '次要', c: 'var(--text-500)', bg: 'var(--neutral-bg)' },
 };
 
-/* 由节点状态推导：段位流水 + 默认 tab + 当前段位 */
+/* segOf — 由节点状态推导出三段流水状态 + 默认 tab + 当前段位。
+   例如 status='review' → 编写已完、审核进行中、展示待办，默认打开审核 tab。 */
 function segOf(status) {
   switch (status) {
     case 'drafting': return { write: 'current', review: 'todo',    show: 'todo',    tab: 'write',  cur: 'write'  };
@@ -37,7 +40,8 @@ function segOf(status) {
   }
 }
 
-/* 兄弟节点（同层 / 同父，用于关键要素切换器） */
+/* siblingsOf — 取节点的同层兑弟（同父），用于「关键要素切换器」。
+   根基三要素互为兑弟；其余节点递归查找其父的 children。 */
 function siblingsOf(id) {
   for (const root of B4_TREE) {
     if (root.id === id) return B4_TREE;            // 根基三要素互为兄弟
@@ -55,7 +59,9 @@ function walkSiblings(node, id) {
 }
 
 /* ============================================================
-   逐环审核数据（按关键要素 id 精编；缺省走生成器）
+   逐环审核数据（按关键要素 id 精编；缺省走生成器 buildRecord）
+   每条记录结构：draft 起草 / rounds 审核往返轮次 / conclusion 结论 / show 展示定稿 / kapian 卡点详情。
+   ⚠ mock 数据。
    ============================================================ */
 const REVIEW_AUTHORED = {
   /* 审核中 · 多轮往返 */
@@ -184,7 +190,8 @@ const REVIEW_AUTHORED = {
   },
 };
 
-/* 生成器：未精编的节点按状态生成合理的三段记录 */
+/* buildRecord — 生成器：未精编的节点按其状态生成合理的三段记录。
+   优先取 REVIEW_AUTHORED[id]，没有则按 status（drafting/review/shown）造出对应的草稿+往返+结论。 */
 function buildRecord(node) {
   if (REVIEW_AUTHORED[node.id]) return REVIEW_AUTHORED[node.id];
   const lvl = B4_NL[node.level];
@@ -227,9 +234,12 @@ function buildRecord(node) {
 
 /* ============================================================
    小组件
+   ------------------------------------------------------------
+   FlowStepper 段位流水条 / ElementSwitcher 关键要素切换器 /
+   WriteTab・ReviewTab・ShowTab 三个 tab / RoundItem 单轮往返。
    ============================================================ */
 
-/* 段位流水 */
+/* FlowStepper — 顶部「编写→审核→展示」流水条。根据 seg 状态上色与打时间戳。 */
 function FlowStepper({ seg, rec }) {
   const stamp = (k) => {
     if (k === 'write') return rec.draft ? rec.draft.time : '—';
@@ -265,7 +275,8 @@ function FlowStepper({ seg, rec }) {
   );
 }
 
-/* 关键要素切换器 */
+/* ElementSwitcher — 关键要素切换器（在同层兑弟间切换审核）。
+   open 控下拉，点外部关闭；选中后 onPick(id) 切换当前要素。 */
 function ElementSwitcher({ nodeId, onPick }) {
   const [open, setOpen] = React.useState(false);
   const sibs = siblingsOf(nodeId);
@@ -305,7 +316,7 @@ function ElementSwitcher({ nodeId, onPick }) {
   );
 }
 
-/* 编写 tab */
+/* WriteTab — 编写 tab：展示起草人/版本/时间与草稿文档内容。 */
 function WriteTab({ rec }) {
   const d = rec.draft;
   return (
@@ -336,7 +347,7 @@ function WriteTab({ rec }) {
   );
 }
 
-/* 单轮往返 */
+/* RoundItem — 单轮审核往返（可折叠）：显示本轮裁决 + 问题列表 + 起草方修订回应。 */
 function RoundItem({ round, idx, total, defaultOpen }) {
   const [open, setOpen] = React.useState(defaultOpen);
   const r = round.result;
@@ -389,7 +400,8 @@ function RoundItem({ round, idx, total, defaultOpen }) {
   );
 }
 
-/* 审核 tab */
+/* ReviewTab — 审核 tab：多轮往返记录 + 审核结论条（通过/审核中/未通过）。
+   未通过且 kapian=true 时展示「已升级卡点」并提供 onEnterKapian 跳卡点处置。 */
 function ReviewTab({ rec, onEnterKapian }) {
   const c = rec.conclusion;
   const rounds = rec.rounds || [];
@@ -466,7 +478,8 @@ function ReviewTab({ rec, onEnterKapian }) {
   );
 }
 
-/* 展示 tab */
+/* ShowTab — 展示 tab：体现「通过一条、展示一条」原则。
+   已同步（show.synced）显定稿；未通过显问题并不上墙；审核中/编写中显待展示。 */
 function ShowTab({ rec }) {
   const c = rec.conclusion;
   // 已通过 → 同步展示定稿
@@ -533,7 +546,10 @@ function ShowTab({ rec }) {
 
 /* ============================================================
    页面 4.1 · 逐环审核
-   ============================================================ */
+   ------------------------------------------------------------
+   LoopReview：状态 curId 当前要素（可由入参 nodeId 跨页指定）；tab 当前页签。
+     rec 由 buildRecord(node) 得出；seg 由节点状态推导。切换要素时重置默认 tab。
+     enterKapian：跳转卡点处置页并携带 curId。 */
 function LoopReview({ nodeId, onNavigate }) {
   const [curId, setCurId] = React.useState(nodeId || 'week-a1a');
   const node = B4_MAP[curId] || B4_MAP['week-a1a'];

@@ -1,18 +1,23 @@
 /* ============================================================
    页面 3.1 · 项目主页（重构）
-   —— 模块逐区陈列的无限滚动画布 + 实时目标数看板
-   —— 顶部：版本切换 / 历史数据；任一目标可弹出「上层继承 + 下层拆解」详情
+   ------------------------------------------------------------
+   作用：进入某项目后的主页。模块逐区陈列的无限滚动画布 + 实时目标数看板。
+         顶部：版本切换 / 历史数据；任一目标可弹出「上层继承 + 下层拆解」详情。
+   依赖：pages_home_modules.jsx（六大模块）、GOAL_TREE / NODE_STATUS（目标树数据）。
    ============================================================ */
 
-/* 项目元数据（以 SAMPLE_PROJECT 为主，按 ID 兜底；多页共用，须保留导出） */
+/* 项目元数据（以 SAMPLE_PROJECT 为主，按 ID 兜底；多页共用，须保留导出）。
+   charterKey 关联到 CHARTER_DOCS 里的立项章程（项目简介处读取）。 */
 const PROJECT_META = {
-  name: '智能履约调度中台', pid: 'PRJ-2026-0137',
+  name: '智能履约调度中台', pid: 'PRJ-2026-0137', charterKey: 'sched',
   health: '健康', mode: 'AI 自治', owner: '何沛', stage: '执行 · v2.3', version: 'v2.3',
   progress: 82, cost: 318400, started: '2026-03-12', goals: 14, tasks: 38, kapian: 1, aiStaff: 5
 };
 const HEALTH_TONE = { 健康: 'success', 关注: 'warning', 卡点: 'danger' };
 
-/* ---------- 目标树 → 实时看板（按层归集，up=父 / down=子） ---------- */
+/* ---------- 目标树 → 实时看板（按层归集，up=父 / down=子） ----------
+   buildBoard：递归遍历全局 GOAL_TREE，按 level 把节点归入 byLevel 五个泳道，
+     同时记录每个节点的父（parent 映射），供详情抽屉展示「继承于上层」。 */
 function buildBoard() {
   const byLevel = { ideal: [], mid: [], phase: [], week: [], task: [] };
   const parent = {};
@@ -33,7 +38,8 @@ const BOARD_LANES = [
 { level: 'task', label: '执行事务', icon: 'square-check-big', c: 'var(--success)' }];
 
 
-/* ---------- 滚动到模块 ---------- */
+/* ---------- 滚动到模块 ----------
+   scrollToSection：在 .content 容器内平滑滚动到指定 id 的模块（预留 70px 顶部偏移避让工具条）。 */
 function scrollToSection(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -42,9 +48,59 @@ function scrollToSection(id) {
 }
 const LEVEL_SECTION = { ideal: 'sec-ideal', mid: 'sec-mid', phase: 'sec-phase', week: 'sec-week', task: 'sec-week' };
 
-/* ============================================================
-   实时目标数看板
-   ============================================================ */
+/* ---------- 项目简介 · 立项初衷与目标 ----------
+   ProjectBrief：精简展示立项目的 + 核心指标；点「查看更多」展开完整立项章程（CharterDoc）。
+   内容动态取自 AI 立项章程 CHARTER_DOCS[charterKey]（与「自动立项」页同源）。 */
+function ProjectBrief({ project }) {
+  const [open, setOpen] = React.useState(false);
+  const key = (project && project.charterKey) || PROJECT_META.charterKey || 'sched';
+  const d = (window.CHARTER_DOCS || {})[key];
+  React.useEffect(() => { refreshIcons(); });
+  if (!d) return null;
+  const CharterDocCmp = window.CharterDoc;
+  return (
+    <section className={`ph-brief${open ? ' is-open' : ''}`} id="sec-brief">
+      <div className="ph-brief-head">
+        <span className="ph-brief-ico"><Icon name="scroll-text" size={16} color="var(--blue-primary)" /></span>
+        <span className="ph-brief-title">项目简介</span>
+      </div>
+
+      {/* 精简：立项初衷 */}
+      <p className="ph-brief-lead">{d.purpose}</p>
+
+      {/* 精简：核心目标（动态取自立项指标） */}
+      <div className="ph-brief-objs">
+        {d.objectives.map((o, i) => (
+          <div className="ph-brief-obj" key={i}>
+            <span className="ph-brief-obj-k">{o.goal}</span>
+            <span className="ph-brief-obj-v">
+              <span className="ph-brief-obj-base mono">{o.baseline}</span>
+              <Icon name="arrow-right" size={12} color="var(--text-400)" />
+              <span className="ph-brief-obj-target mono">{o.target}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* 展开：完整立项章程 */}
+      {open && CharterDocCmp && (
+        <div className="ph-brief-full">
+          <div className="ph-brief-divider"><span>完整立项章程</span></div>
+          <CharterDocCmp docKey={key} status="chartered" />
+        </div>
+      )}
+
+      <button className="ph-brief-more" onClick={() => setOpen(o => !o)}>
+        {open ? '收起' : '查看更多 · 完整立项信息'}
+        <Icon name={open ? 'chevron-up' : 'chevron-down'} size={15} color="var(--blue-primary)" />
+      </button>
+    </section>
+  );
+}
+
+/* ---------- 实时目标数看板 ----------
+   GoalBoard：把目标树按五层排成泳道，每个节点一个 chip。
+   交互：openNode 组装该节点的详情（含 up 父/down 子/卡点）调 onOpen 开详情抽屉。 */
 function GoalBoard({ onOpen, onNavigate }) {
   const { byLevel, parent } = React.useMemo(buildBoard, []);
   const NS = window.NODE_STATUS;
@@ -102,9 +158,10 @@ function GoalBoard({ onOpen, onNavigate }) {
 
 }
 
-/* ============================================================
-   统一详情抽屉 · 上层继承 + 下层拆解
-   ============================================================ */
+/* ---------- 统一详情抽屉 · 上层继承 + 下层拆解 ----------
+   GoalDetail：任一目标点击后的详情抽屉，展示状态/进度/卡点/定义，以及上下层关系。
+   关键交互：jump(level) — 点上层/下层目标：先关闭抽屉，再滚动到对应模块（LEVEL_SECTION 映射）。
+   props：detail 详情对象（由各模块的 onOpen 拼装）。 */
 function GoalDetail({ detail, onClose, onJump }) {
   if (!detail) return null;
   const lvl = HOME_LEVEL[detail.level] || HOME_LEVEL.mid;
@@ -203,9 +260,10 @@ function GoalDetail({ detail, onClose, onJump }) {
 
 }
 
-/* ============================================================
-   主组件 · ProjectHome
-   ============================================================ */
+/* ---------- 主组件 · ProjectHome ----------
+   状态：loading；detail 当前详情抽屉；activeSec 当前高亮模块（滚动监听）；
+     quarter/month/week 季→月→周的嵌套版本（changeQuarter/changeMonth 联动下级）。
+   滚动监听：监听 .content 滚动，根据各 section 的 offsetTop 高亮当前锚点导航项。 */
 function ProjectHome({ project, onNavigate }) {
   const [loading, setLoading] = React.useState(true);
   const ver = (project && project.version) || PROJECT_META.version;
@@ -271,16 +329,20 @@ function ProjectHome({ project, onNavigate }) {
           </div>
         </div>
         <div className="ph-meta">
+          <div className="ph-meta-item"><span className="ph-meta-k">健康度</span><span className="ph-meta-v"><span className="ph-health" data-tone={HEALTH_TONE[p.health]}><span className="ph-health-dot" />{p.health}</span></span></div>
           <div className="ph-meta-item"><span className="ph-meta-k">负责模式</span><span className="ph-meta-v"><Icon name={p.mode === 'AI 自治' ? 'bot' : 'user-cog'} size={15} color={p.mode === 'AI 自治' ? 'var(--ai)' : 'var(--text-500)'} />{p.mode}</span></div>
           <div className="ph-meta-item"><span className="ph-meta-k">项目负责人</span><span className="ph-meta-v"><span className="pl-ava">{p.owner[0]}</span>{p.owner}</span></div>
           <div className="ph-meta-item"><span className="ph-meta-k">目标 / 事务数</span><span className="ph-meta-v mono">{p.goals} / {p.tasks}</span></div>
           <div className="ph-meta-item"><span className="ph-meta-k">累计算力成本</span><span className="ph-meta-v mono">¥{p.cost.toLocaleString('en-US')}</span></div>
           <div className="ph-progress-wrap">
             <Ring value={p.progress} size={58} stroke={6} color={p.progress >= 80 ? 'var(--success)' : 'var(--blue-primary)'} />
-            <div><div className="ph-meta-k">整体推进度</div><div className="t-micro" style={{ color: 'var(--text-400)', marginTop: 4 }}>按已验收事务加权</div></div>
+            <div><div className="ph-meta-k">整体推进度</div></div>
           </div>
         </div>
       </div>
+
+      {/* 项目简介 · 立项初衷与目标 */}
+      <ProjectBrief project={p} />
 
       {/* 实时目标数看板 */}
       <GoalBoard onOpen={setDetail} onNavigate={onNavigate} />

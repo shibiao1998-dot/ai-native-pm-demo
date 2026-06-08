@@ -18,6 +18,42 @@
 .cl-type.force  { color: var(--danger); background: var(--danger-bg); }
 
 /* ============================================================
+   结项审批（组合级 · 跨项目队列 → 详情）
+   ============================================================ */
+/* 生命周期闸门 · 概念条 */
+.cl-model { display: flex; align-items: center; gap: 16px; padding: 16px 20px; background: linear-gradient(180deg, #FBFAFF, #F4F1FE); border: 1px solid var(--closure-bd); border-radius: var(--r-md); margin-bottom: 18px; }
+.cl-model-ico { width: 40px; height: 40px; border-radius: var(--r-md); background: #fff; border: 1px solid var(--closure-bd); display: flex; align-items: center; justify-content: center; flex: none; }
+.cl-model-main { flex: 1; min-width: 0; }
+.cl-model-t { font-size: 14px; font-weight: 600; color: var(--text-900); }
+.cl-model-s { font-size: 12.5px; line-height: 20px; color: var(--text-500); margin-top: 4px; }
+.cl-model-s b { color: var(--closure); font-weight: 600; }
+.cl-inline-link { border: none; background: none; padding: 0 1px; font: inherit; font-weight: 600; color: var(--closure); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.cl-model-stats { display: flex; gap: 22px; flex: none; padding-left: 20px; border-left: 1px solid var(--closure-bd); }
+.cl-model-stat { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.cl-model-stat-v { font-size: 24px; font-weight: 700; line-height: 1; }
+.cl-model-stat-k { font-size: 11px; color: var(--text-500); white-space: nowrap; }
+
+/* 队列分组标题 */
+.cl-q-label { display: flex; align-items: center; gap: 9px; margin: 4px 0 10px; }
+.cl-q-count { font-size: 11px; font-weight: 700; color: var(--closure); background: var(--closure-bg); padding: 1px 8px; border-radius: var(--r-full); }
+
+/* 待结项队列卡片（复用 .iv-card，补足底排） */
+.cl-qcard .iv-card-main { gap: 10px; }
+.cl-qcard-foot { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.cl-qcard-metric { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-700); white-space: nowrap; }
+.cl-qcard-metric b { font-weight: 700; }
+.cl-qcard-owner { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-500); white-space: nowrap; }
+.pl-ava.sm { width: 18px; height: 18px; font-size: 10px; }
+.cl-qcard-ai { flex: 1 1 100%; margin-top: 2px; }
+
+/* 详情头部：返回 + 副标题 */
+.cl-back { width: 34px; height: 34px; border-radius: var(--r-sm); border: 1px solid var(--border-200); background: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all var(--dur-fast); flex: none; }
+.cl-back:hover { background: var(--canvas); border-color: var(--border-300); }
+.cl-head-sub { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--text-500); margin-top: 3px; }
+.cl-head-sub .mono { font-family: var(--font-mono); }
+.cl-head-dot { width: 3px; height: 3px; border-radius: 999px; background: var(--border-300); flex: none; }
+
+/* ============================================================
    7.1 · 结项审核（正常结项）
    ============================================================ */
 

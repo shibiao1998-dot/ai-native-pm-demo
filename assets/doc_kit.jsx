@@ -1,9 +1,17 @@
 /* ============================================================
-   文档套件 doc_kit — 共用「详情大表」组件
-   复用 .cd-*（pages_b2.css）与 .dk-*（doc_kit.css）样式
-   依赖 window.Icon
+   文档套件 doc_kit.jsx — 「详情大表 / 文档」组件库
+   ------------------------------------------------------------
+   作用：全站各类「文档型详情」的拼装积木。立项书、验收报告、复盘纪要、
+         风险单、成本表等都是由这些 Doc* 原语拼出来的，不需各页重复写表格。
+         这些组件几乎都是「纯展示」（无状态），只负责把传入的数据渲染成统一版式。
+
+   数据来源：本文件不含任何数据，全部通过 props 从调用页传入（见每个组件的 props 契约）。
+   样式：.cd-*（pages_b2.css，早期立项书样式）+ .dk-*（doc_kit.css，后加原语）。
+   依赖：window.Icon。导出：文件末尾 Object.assign(window, {...})。
    ============================================================ */
 
+/* 语义色 → CSS 变量映射表（与 components.jsx 的 STATUS 同理，但多了 blue 主色）。
+   dkTone(t) 是带默认值的安全取色函数，未知 tone 一律回退到 blue。 */
 const DK_TONE = {
   success: { c: 'var(--success)', bg: 'var(--success-bg)' },
   warning: { c: 'var(--warning)', bg: 'var(--warning-bg)' },
@@ -15,10 +23,11 @@ const DK_TONE = {
 };
 const dkTone = (t) => DK_TONE[t] || DK_TONE.blue;
 
-/* 文档容器 */
+/* 文档容器 — 所有 Doc* 片段的最外层包裹，统一文档内边距与排版。 */
 function DocDoc({ children }) { return <div className="cd-doc">{children}</div>; }
 
-/* 顶部状态横幅 */
+/* 顶部状态横幅 — 文档顶部的一句话提示（如「AI 已生成 / 待人工确认」）。
+   tone='success' 时走完成态（绿色）；其余 tone 取 DK_TONE 背景色。 */
 function DocBanner({ tone = 'ai', icon = 'sparkles', children }) {
   const done = tone === 'success';
   return (
@@ -29,7 +38,7 @@ function DocBanner({ tone = 'ai', icon = 'sparkles', children }) {
   );
 }
 
-/* 编号小节 */
+/* 编号小节 — 文档里带序号圆点 + 标题的分节容器。no=序号，icon=标题图标。 */
 function DocSec({ no, title, icon, children }) {
   return (
     <section className="cd-sec">
@@ -43,9 +52,10 @@ function DocSec({ no, title, icon, children }) {
   );
 }
 
+/* 段落文字 */
 function DocPara({ children }) { return <p className="cd-para">{children}</p>; }
 
-/* 键值元信息网格 · items: [{k, v}] */
+/* 键值元信息网格 · 两列「字段名 : 值」网格。props: items=[{k 字段名, v 值}] */
 function DocMeta({ items }) {
   return (
     <div className="cd-meta-grid">
@@ -59,7 +69,7 @@ function DocMeta({ items }) {
   );
 }
 
-/* 要点列表 · items: [string] 或 [{text, icon, tone}] */
+/* 要点列表 · 带勾选/图标的要点。props: items 可传纯字符串数组，或 [{text, icon, tone}] 逐项定制 */
 function DocList({ items, icon = 'check-circle-2', tone = 'blue' }) {
   return (
     <div className="cd-list">
@@ -76,7 +86,8 @@ function DocList({ items, icon = 'check-circle-2', tone = 'blue' }) {
   );
 }
 
-/* 两栏对照 · cols: [{label, tone, icon, items:[string]}] */
+/* 两栏对照 · 常用于「范围内 / 范围外」。tone='success' 的列走绿色「在内」样式。
+   props: cols=[{label 标题, tone, icon, items:[string]}] */
 function DocCompare({ cols }) {
   return (
     <div className="cd-scope">
@@ -93,7 +104,8 @@ function DocCompare({ cols }) {
   );
 }
 
-/* 指标表 · rows: [{goal, baseline, target, src}] */
+/* 指标表 · 三列「指标 / 基线 / 目标」。src 标记数据来源（industry=行业预估 / 其他=内部数据）。
+   props: rows=[{goal, baseline, target, src?}]；head 可改表头文案 */
 function DocMetrics({ rows, head = ['指标', '当前基线', '目标值'] }) {
   return (
     <>
@@ -115,7 +127,7 @@ function DocMetrics({ rows, head = ['指标', '当前基线', '目标值'] }) {
   );
 }
 
-/* 里程碑时间线 · items: [{phase, when, desc}] */
+/* 里程碑时间线 · 竖向点状时间线。props: items=[{phase 阶段, when 时间, desc 说明}] */
 function DocTimeline({ items }) {
   return (
     <div className="cd-mile">
@@ -132,7 +144,9 @@ function DocTimeline({ items }) {
   );
 }
 
-/* 风险行 · rows: [{risk, level, mitig}] */
+/* 风险行 · 每行一个风险 + 等级药丸 + 缓解措施。
+   DK_RISK_TONE：高/中/低 三个等级映射到 danger/warning/success 颜色。
+   props: rows=[{risk 描述, level '高'|'中'|'低', mitig 缓解措施}] */
 const DK_RISK_TONE = { '高': 'danger', '中': 'warning', '低': 'success' };
 function DocRisks({ rows }) {
   return (
@@ -153,7 +167,7 @@ function DocRisks({ rows }) {
   );
 }
 
-/* 干系人 / 角色 · rows: [{role, who, icon}] */
+/* 干系人 / 角色 · props: rows=[{role 角色, who 人名, icon?}] */
 function DocPeople({ rows }) {
   return (
     <div className="cd-stake">
@@ -168,7 +182,7 @@ function DocPeople({ rows }) {
   );
 }
 
-/* AI 结论note */
+/* AI 结论批注 · 紫色 AI 色调的一段结论提示，用于标识「这是 AI 生成的观点」。 */
 function DocAINote({ children, icon = 'sparkles' }) {
   return (
     <div className="cd-ai-note">
@@ -178,7 +192,9 @@ function DocAINote({ children, icon = 'sparkles' }) {
   );
 }
 
-/* 成本表 · items:[{tag,k,v}] total gate gateNote */
+/* 成本表 · 逐项成本 + 合计 + 可选「闸门」提示（超阈需审批）。
+   DK_COST_TAG：成本类别 采购/人力/算力/其他 映射到标签颜色。
+   props: items=[{tag 类别, k 名称, v 金额}]；total 合计；gate=true 走红色闸门；gateNote 闸门说明 */
 const DK_COST_TAG = { '采购': 'info', '人力': 'ai', '算力': 'ai', '其他': 'neutral' };
 function DocCost({ items, total, gate, gateNote }) {
   return (
@@ -206,9 +222,10 @@ function DocCost({ items, total, gate, gateNote }) {
   );
 }
 
-/* ---- dk-* 新原语 ---- */
+/* ====== 以下为 dk-* 新原语（后期扩展，用于复盘 / 评估 / 留痕类详情） ====== */
 
-/* 指标磁贴行 · items: [{v, unit, k, delta, deltaTone}] */
+/* 指标磁贴行 · 一排大数字磁贴，可带同比增减。
+   props: items=[{v 数值, unit 单位, k 名称, delta 增减, deltaTone success|danger}] */
 function DocStats({ items }) {
   return (
     <div className="dk-stats">
@@ -223,7 +240,7 @@ function DocStats({ items }) {
   );
 }
 
-/* 横条 · rows: [{k, pct, v, tone}] */
+/* 横条 · 水平进度条列表。props: rows=[{k 名称, pct 百分比, v? 右侧文案(默认显示 pct%), tone}] */
 function DocBars({ rows }) {
   return (
     <div className="dk-bars">
@@ -238,7 +255,7 @@ function DocBars({ rows }) {
   );
 }
 
-/* 证据 / 附件 / 引用 · rows: [{icon, name, meta, tag, tagTone}] */
+/* 证据 / 附件 / 引用 · 文件行列表。props: rows=[{icon, name 文件名, meta 副信息, tag? 右侧标签, tagTone}] */
 function DocEvidence({ rows }) {
   return (
     <div className="dk-ev">
@@ -256,7 +273,8 @@ function DocEvidence({ rows }) {
   );
 }
 
-/* 决策链 / 步骤 · items: [{act, actor, when, desc, basis, ai}] */
+/* 决策链 / 步骤 · 带序号的决策/操作链，ai=true 时序号与执行人标记为 AI（区分人/机操作）。
+   props: items=[{act 动作, actor 执行人, when 时间, desc 说明, basis 依据, ai 是否 AI}] */
 function DocChain({ items }) {
   return (
     <div className="dk-chain">
@@ -278,7 +296,7 @@ function DocChain({ items }) {
   );
 }
 
-/* 引文块 */
+/* 引文块 · 引用原文/发言，by=出处。 */
 function DocQuote({ children, by }) {
   return (
     <div className="dk-quote">
@@ -288,12 +306,13 @@ function DocQuote({ children, by }) {
   );
 }
 
-/* 标签行 */
+/* 标签行 · props: tags=[string] */
 function DocTags({ tags }) {
   return <div className="dk-tags">{tags.map((t, i) => <span className="dk-tag" key={i}>{t}</span>)}</div>;
 }
 
-/* 裁决横幅 · tone: pass|warn|stop */
+/* 裁决横幅 · 验收/审核结论的大横幅。tone: pass 通过(绿) | warn 警告(黄) | stop 驳回(红)，
+   未传 icon 时按 tone 自动选图标。props: tone, icon?, title, children 说明 */
 function DocVerdict({ tone = 'pass', icon, title, children }) {
   const ic = icon || (tone === 'pass' ? 'circle-check' : tone === 'stop' ? 'circle-x' : 'alert-triangle');
   const col = tone === 'pass' ? 'var(--success)' : tone === 'stop' ? 'var(--danger)' : 'var(--warning)';
@@ -308,7 +327,7 @@ function DocVerdict({ tone = 'pass', icon, title, children }) {
   );
 }
 
-/* 日志表 · rows: [{when, main, tail}] */
+/* 日志表 · 留痕/时间线列表。props: rows=[{when 时间, main 主体, tail 尾部补充}] */
 function DocLog({ rows }) {
   return (
     <div className="dk-log">
@@ -340,6 +359,7 @@ function DocRow({ icon, iconTone = 'blue', iconColor, name, badges, meta, aside,
   );
 }
 
+/* 把全部 Doc* 原语与 dkTone 挂到 window，供各页面文件拼装详情使用。 */
 Object.assign(window, {
   DocDoc, DocBanner, DocSec, DocPara, DocMeta, DocList, DocCompare, DocMetrics,
   DocTimeline, DocRisks, DocPeople, DocAINote, DocCost,

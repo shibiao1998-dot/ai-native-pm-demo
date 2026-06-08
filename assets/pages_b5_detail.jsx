@@ -1,12 +1,15 @@
 /* ============================================================
    页面 5.2 · 事务详情（六要素）
-   单条事务作为派给 6699.com AI 员工执行与验收的完整输入
+   ------------------------------------------------------------
+   作用：单条事务作为派给 6699.com AI 员工执行与验收的完整输入。
+         呈现事务六要素、执行产出、验收状态，以及异步反馈动作。
+   数据：task 由外壳（ExecutionTasks）传入；buildSix 对缺六要素的事务生成默认值。
    ============================================================ */
 
 const TD_TYPE = window.TASK_TYPE;
 const TD_STATUS = window.TASK_STATUS;
 
-/* 六要素定义（②~⑥；① 名称即标题） */
+/* 六要素定义（②~⑥；① 名称即标题）。how 只给范围边界、不教步骤；criteria 是验收 AI 的依据。 */
 const SIX_DEF = [
   { key: 'what',     n: '02', label: '是什么', en: 'definition', icon: 'file-text', hint: '定义' },
   { key: 'why',      n: '03', label: '为什么做', en: 'background', icon: 'help-circle', hint: '背景' },
@@ -28,6 +31,7 @@ function buildSix(task) {
   };
 }
 
+// ProcessTimeline：执行产出的过程留痕时间线（done 标记已完成步骤）。
 function ProcessTimeline({ steps }) {
   return (
     <div className="td-process">
@@ -44,6 +48,7 @@ function ProcessTimeline({ steps }) {
   );
 }
 
+// AcceptBar：验收状态条。accept.state: pass 通过/fail 未过/running 验收中/pending 未进入，各自颜色与文案。
 function AcceptBar({ accept }) {
   if (!accept) return null;
   const map = {
@@ -67,6 +72,9 @@ function AcceptBar({ accept }) {
   );
 }
 
+/* TaskDetail — 事务详情页（由外壳 view==='detail' 时渲染）。
+   状态：showProcess 是否展开产出过程留痕。six 由 buildSix(task) 得出。
+   交互：onBack 返回看板；右栏「局部重写 / 任务打回」为动作层异步反馈（演示 onToast）。 */
 function TaskDetail({ task, onBack, onNavigate, onToast }) {
   const [showProcess, setShowProcess] = React.useState(false);
   const ty = TD_TYPE[task.type];

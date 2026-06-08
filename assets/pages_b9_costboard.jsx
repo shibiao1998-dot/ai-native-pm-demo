@@ -1,12 +1,15 @@
 /* ============================================================
    批 9 · 页面 9.1 · 项目集总看板（组合级）
-   汇总全系统算力消耗，管理层掌握平台整体成本。
-   核心三数（Metric-XL 等宽 + 数字滚动）+ 趋势折线（1 蓝 + 灰）+ 按项目成本分布（可排序）。
-   与总览首页（批 0）的总看板概览呼应 —— 此为详情。点项目 → 进项目费用看板（9.2）。
-   AI 经公司网关调用 API，系统采集该次实际费用记入算力成本（预留接口）。
+   ------------------------------------------------------------
+   作用：汇总全系统算力消耗，管理层掌握平台整体成本。三个 tab：
+         overview 成本概览（核心三数 + 趋势 + 按项目分布）/ trace 全链路追踪 / calls 调用明细。
+   点项目 → 进项目费用看板（9.2）。⚠ 数据为 mock；AI 经公司网关调 API、采集实际费用为预留接口。
+   入口联动：顶栏「今日」按钮写 window.__cbRange；其它页跳入时写 __cbTab/__traceId 预选。
    ============================================================ */
 
-/* ---------- 共享 · 双线趋势图（1 蓝 + 灰，含坐标轴 / 网格 / hover） ---------- */
+/* ---------- 共享 · 双线趋势图（1 蓝 + 灰，含坐标轴 / 网格 / hover） ----------
+   DualLineChart：手绘 SVG 双折线（primary 实线 + secondary 虚线对照）。
+   hover 状态根据鼠标 x 位置反算最近数据点，显示竖线 + 圆点 + tooltip。 */
 function DualLineChart({ primary, secondary, labels, h = 150, primaryColor = 'var(--blue-primary)', secondaryColor = 'var(--text-400)', valueFmt = (v) => v }) {
   const [hover, setHover] = React.useState(null);
   const wrapRef = React.useRef(null);
@@ -74,6 +77,9 @@ const RUN_TREND_LY= [98,104,101,114,120,116,128,134,130,142,146,140,152,162,156,
 /* 项目成本分布（取 PROJECTS，按算力成本 cost 排序；runs 按比例派生） */
 function projRuns(cost) { return Math.round(cost / 1.64 / 100) * 100; }
 
+/* PortfolioCostBoard — 算力总看板页主体。
+   状态：range 时间范围（today/7d/30d/90d/custom）/ cStart-cEnd 自定义区间 / pf 项目集筛选 /
+     sort 排序 / tab 三视图。所有数值按 PER（单日实际）× days × 项目集占比 ratio 派生。 */
 function PortfolioCostBoard({ onNavigate, onEnterProject }) {
   const [loading, setLoading] = React.useState(true);
   const TODAY = '2026-06-03';
@@ -86,6 +92,7 @@ function PortfolioCostBoard({ onNavigate, onEnterProject }) {
   const [pf, setPf] = React.useState('all');
   const [pfOpen, setPfOpen] = React.useState(false);
   const [rangeOpen, setRangeOpen] = React.useState(false);
+  const [tab, setTab] = React.useState(() => { const t = window.__cbTab; if (t) { delete window.__cbTab; return t; } return 'overview'; });
   React.useEffect(() => { const t = setTimeout(() => setLoading(false), 700); return () => clearTimeout(t); }, []);
   React.useEffect(() => { refreshIcons(); });
 
@@ -128,6 +135,13 @@ function PortfolioCostBoard({ onNavigate, onEnterProject }) {
           </div>
         </div>
         <div className="page-head-right">
+          <div className="ob-tabs">
+            {[['overview', '成本概览', 'layout-dashboard'], ['trace', '全链路追踪', 'git-fork'], ['calls', '调用明细', 'list']].map(([id, lb, ic]) => (
+              <button key={id} className="ob-tab" data-on={tab === id} onClick={() => setTab(id)}><Icon name={ic} size={14} color={tab === id ? 'var(--text-900)' : 'var(--text-500)'} />{lb}</button>
+            ))}
+          </div>
+          {tab === 'overview' && (
+          <>
           <div className="cb-pf">
             <button className="cb-pf-btn" data-on={pf !== 'all'} onClick={() => setPfOpen(o => !o)}>
               <Icon name="layers" size={15} color={pf !== 'all' ? 'var(--blue-primary)' : 'var(--text-500)'} />
@@ -183,10 +197,12 @@ function PortfolioCostBoard({ onNavigate, onEnterProject }) {
               </>
             )}
           </div>
+          </>
+          )}
         </div>
       </div>
 
-      {loading ? (
+      {tab === 'overview' && (loading ? (
         <>
           <div className="cb-cores">{[0,1,2].map(i => <Card key={i} style={{ padding: 22 }}><Skel w="50%" h={14} /><Skel w="60%" h={34} style={{ marginTop: 16 }} /><Skel w="40%" h={12} style={{ marginTop: 16 }} /></Card>)}</div>
           <div className="cb-charts">{[0,1].map(i => <Card key={i} style={{ padding: 20 }}><Skel w="40%" h={14} /><Skel w="100%" h={150} style={{ marginTop: 16 }} /></Card>)}</div>
@@ -277,7 +293,9 @@ function PortfolioCostBoard({ onNavigate, onEnterProject }) {
             </div>
           </div>
         </>
-      )}
+      ))}
+      {tab === 'trace' && <TraceView />}
+      {tab === 'calls' && <CallLog />}
     </div>
   );
 }

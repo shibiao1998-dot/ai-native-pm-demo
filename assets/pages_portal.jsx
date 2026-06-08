@@ -1,11 +1,16 @@
 /* ============================================================
-   总入口 Portal — 平台落地页
-   · 模糊搜索全部项目名称 / ID → 进入该项目专属工作区
-   · 右上角按钮 → 进入项目管理工作台
-   两块功能在此分流，互为独立整体。
+   总入口 Portal — pages_portal.jsx
+   ------------------------------------------------------------
+   作用：平台落地页（mode='portal' 时全屏渲染）。两大入口在此分流：
+         ① 中央搜索框：模糊匹配项目名/ID → onEnterProject 进入该项目专属工作区
+         ② 右上角按钮：onEnterWorkbench 进入项目管理工作台
+   数据来源：PROJECTS / HEALTH 定义在 pages_projects.jsx（mock）。
    ============================================================ */
 
-/* 子序列模糊匹配（支持中文逐字 + 拼写连续）+ ID 包含 */
+/* portalMatch — 项目搜索的匹配算法。
+   作用：判断项目 p 是否命中查询 q。三种命中方式（任一即可）：
+     ① ID 包含查询  ② 名称包含查询  ③ 名称「子序列」模糊匹配（逐字顺序出现即可，不要求连续）。
+     空查询返回 true（不过滤）。 */
 function portalMatch(q, p) {
   const query = q.trim().toLowerCase();
   if (!query) return true;
@@ -19,14 +24,14 @@ function portalMatch(q, p) {
 }
 
 function Portal({ onEnterProject, onEnterWorkbench }) {
-  const [q, setQ] = React.useState('');
-  const [focused, setFocused] = React.useState(false);
-  const [active, setActive] = React.useState(0);
+  const [q, setQ] = React.useState('');               // 搜索词
+  const [focused, setFocused] = React.useState(false); // 输入框是否聚焦（控制结果浮层显示）
+  const [active, setActive] = React.useState(0);       // 键盘上下选中的结果下标
   const inputRef = React.useRef(null);
 
   React.useEffect(() => { refreshIcons(); });
 
-  // 全局快捷键聚焦
+  // 全局 ⌘K / Ctrl+K 聚焦搜索框
   React.useEffect(() => {
     const h = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); inputRef.current && inputRef.current.focus(); }
@@ -35,13 +40,15 @@ function Portal({ onEnterProject, onEnterWorkbench }) {
     return () => window.removeEventListener('keydown', h);
   }, []);
 
+  // 过滤 + 限最多 8 条。q 变化名重算。
   const results = React.useMemo(() => PROJECTS.filter(p => portalMatch(q, p)).slice(0, 8), [q]);
-  React.useEffect(() => { setActive(0); }, [q]);
-  const showResults = focused && q.trim().length > 0;
+  React.useEffect(() => { setActive(0); }, [q]);      // 换词时选中回首位
+  const showResults = focused && q.trim().length > 0; // 仅「聚焦 + 有输入」时才显示结果浮层
 
-  const recent = PROJECTS.slice(0, 6);
+  const recent = PROJECTS.slice(0, 6);                // 「最近访问」区（mock：取前 6 个）
   const kapianTotal = PROJECTS.reduce((s, p) => s + p.kapian, 0);
 
+  // 键盘导航：↑↓ 移动选中、Enter 进入选中项目、Esc 清空并失焦。
   const onKeyDown = (e) => {
     if (!showResults) return;
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(a + 1, results.length - 1)); }
@@ -76,6 +83,7 @@ function Portal({ onEnterProject, onEnterWorkbench }) {
         <div className="portal-search-wrap">
           <div className={`portal-search${focused ? ' focused' : ''}`} onClick={() => inputRef.current && inputRef.current.focus()}>
             <Icon name="search" size={20} color={focused ? 'var(--blue-primary)' : 'var(--text-400)'} />
+            {/* onBlur 延迟 140ms 再隐藏结果：避免点击结果项时浮层先消失、导致 onClick 丢失 */}
             <input
               ref={inputRef}
               value={q}

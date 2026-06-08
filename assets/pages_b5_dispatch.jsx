@@ -1,11 +1,15 @@
 /* ============================================================
    页面 5.3 · 6699.com 派发与回收
-   事务按类型自动路由 → 传入六要素 → AI 执行 → 回收 → 验收 → 不达标退回迭代
-   长期不达标 → 汇总问题提交 6699.com 改进（接口通自动发 / 不通沉淀）
+   ------------------------------------------------------------
+   作用：展示事务派发到外部 AI 员工平台（6699.com）的完整闭环：
+         按类型自动路由 → 传入六要素 → AI 执行 → 回收 → 验收 → 不达标退回迭代。
+         长期不达标 → 汇总问题提交 6699.com 改进（接口通自动发 / 不通沉淀）。
+   数据：DP_FLOW/DP_ROSTER/DP_ITER 均为 mock。
    ============================================================ */
 
 const DP_TYPE = window.TASK_TYPE;
 
+/* 派发生命周期流程步骤（on: done 已完成 / run 进行中 / idle 未开始）。 */
 const DP_FLOW = [
   { k: '按类型路由', s: '依事务类型标签自动分配对应 AI 员工', icon: 'route', on: 'done' },
   { k: '传入六要素', s: '名称 / 定义 / 背景 / 边界 / 验收 / 效果', icon: 'list-checks', on: 'done' },
@@ -38,6 +42,7 @@ const DP_ITER = [
 
 const rateColor = (r) => r == null ? 'var(--text-400)' : r >= 95 ? 'var(--success)' : r >= 85 ? 'var(--text-900)' : 'var(--danger)';
 
+// IterItem：某 AI 员工「长期不达标」的迭代建议条（可展开）。route: auto 接口通自动发 / sink 接口未通沉淀。
 function IterItem({ it }) {
   const [open, setOpen] = React.useState(false);
   const ty = DP_TYPE[it.type];
@@ -76,6 +81,8 @@ function IterItem({ it }) {
   );
 }
 
+/* Dispatch6699 — 6699.com 派发视图（由 ExecutionTasks 的 dispatch 视图渲染）。
+   三块：派发流程图 / AI 员工接入状态（live 接口通 / stub 示意）/ 改进建议。 */
 function Dispatch6699({ onOpenTask, onNavigate, onToast }) {
   const liveCount = DP_ROSTER.filter(e => e.conn === 'live').length;
   return (

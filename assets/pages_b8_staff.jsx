@@ -1,10 +1,12 @@
 /* ============================================================
    批 8 · 页面 8.1 · AI 员工后台管理（组合级 · 治理）
-   统一管理官网平台内置的全部 AI 员工：
-   花名册 → 员工档案（身份 + 环节定位 + 技能库）→ 技能详情（另见 pages_b8_skill.jsx）。
+   ------------------------------------------------------------
+   作用：统一管理官网平台内置的全部 AI 员工。
+         三个视图依次下钻：花名册 → 员工档案（身份 + 环节定位 + 技能库）→ 技能详情。
+   依赖：技能详情 SkillDetail 在 pages_b8_skill.jsx；数据 STAFF/FLOW_STAGES 在 pages_b8_staff_data.jsx。
    ============================================================ */
 
-/* 内部小面包屑（视图间导航，不走全局路由） */
+/* SkCrumb — 内部小面包屑（视图间导航，不走全局路由，仅在本页三视图间切换）。 */
 function SkCrumb({ items }) {
   return (
     <div className="crumb">
@@ -38,6 +40,9 @@ const STAFF_LAYERS = [
 
 /* ============================================================
    视图 A · 花名册
+   ------------------------------------------------------------
+   StaffRoster：状态 stage 环节筛选 / q 检索 / sort 排序（达标率/技能数/产出）。
+   表格点行 onOpen(员工) 进入员工档案。数据取自 STAFF。
    ============================================================ */
 function StaffRoster({ onOpen }) {
   const [loading, setLoading] = React.useState(true);
@@ -158,6 +163,9 @@ function StaffRoster({ onOpen }) {
 
 /* ============================================================
    视图 B · 员工档案（身份 + 环节定位 + 技能库）
+   ------------------------------------------------------------
+   EmployeeProfile：展示单个 AI 员工的身份卡、在项目流转中的环节定位、绩效、技能库、工作日志与产出。
+   交互：点技能卡 onOpenSkill(技能) 进入技能详情；onBack 返回花名册。
    ============================================================ */
 function EmployeeProfile({ staff, onBack, onOpenSkill, onToast }) {
   React.useEffect(() => { refreshIcons(); });
@@ -290,9 +298,12 @@ function EmployeeProfile({ staff, onBack, onOpenSkill, onToast }) {
 
 /* ============================================================
    路由：花名册 → 员工档案 → 技能详情
+   ------------------------------------------------------------
+   AIStaffArchive：本页的「内部路由器」。view 三态（list / employee / skill），
+   staff/skill 保存当前选中对象；openSkill 用 enrichSkill 给技能补充员工上下文。
    ============================================================ */
 function AIStaffArchive({ onNavigate }) {
-  const [view, setView] = React.useState('list');   // 'list' | 'employee' | 'skill'
+  const [view, setView] = React.useState('list');   // 'list' 花名册 | 'employee' 档案 | 'skill' 技能详情
   const [staff, setStaff] = React.useState(null);
   const [skill, setSkill] = React.useState(null);
   const [toast, setToast] = React.useState(null);

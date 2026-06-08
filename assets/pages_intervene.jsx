@@ -1,7 +1,12 @@
 /* ============================================================
    页面 1.1 · 介入工作台（组合级 · 管理层集中处置）
+   ------------------------------------------------------------
+   作用：跨项目集集中处置「超出 AI 自治边界」的事项。与项目级介入工作台
+         （pages_b3_intervene.jsx）同构，区别是此处多了「项目集总览 → 进入某集工作台」的两段式导航。
+   数据：INTERVENE_ITEMS / NEW_KAPIAN 为 mock；IV_BOUNDARY 按类型派生边界原因与优化建议。
    ============================================================ */
 
+/* 事项类型（决策性质）：卡点/成本/战略/拆解/结项/异步反馈。 */
 const ITEM_TYPE = {
   kapian:   { label: '卡点', icon: 'alert-triangle', tone: 'warning' },
   cost:     { label: '大额成本审批', icon: 'wallet', tone: 'danger' },
@@ -20,6 +25,33 @@ const ITEM_ACTIONS = {
   close:    [{ k: 'agree', label: '同意结项', variant: 'primary' }, { k: 'disagree', label: '不同意（须给理由）', variant: 'danger', reason: true }],
   feedback: [{ k: 'done', label: '标记已处置', variant: 'primary' }, { k: 'forward', label: '转交项目负责人', variant: 'secondary' }],
 };
+
+/* 边界原因（为何 AI 不能在规则内自主闭环 —— 四种边界） */
+const IV_BK = {
+  threshold: { label: '阈值超限', icon: 'gauge', c: 'var(--warning)', bg: 'var(--warning-bg)', desc: '命中规则阈值，须人工授权' },
+  gap:       { label: '规则盲区', icon: 'puzzle', c: 'var(--info)', bg: 'var(--info-bg)', desc: '无对应规则，须人工裁定后沉淀' },
+  exhausted: { label: '自治上限', icon: 'rotate-ccw', c: 'var(--danger)', bg: 'var(--danger-bg)', desc: 'AI 自愈 / 迭代已达上限' },
+  mandate:   { label: '制度保留', icon: 'shield-check', c: 'var(--text-500)', bg: 'var(--neutral-bg)', desc: '规则强制保留的人工确认点' },
+};
+
+/* 按类型派生的边界原因 + 系统级优化建议（item 可用自身的 boundary / fix 覆盖）。
+   ivBoundary(item) / ivFix(item)：取 item 自带的，否则回退到按类型派生。 */
+const IV_BOUNDARY = {
+  kapian:   { kind: 'exhausted', why: 'AI 已按规则自动重试 / 自愈但仍未通过，超出自动放行上限，须人工裁定。', rule: { id: 'R-ACCEPT-LOOP', name: '逐级验收闭环' },
+              fix: { kind: 'optimize', rule: '自愈失败时自动附「根因数据缺口清单」随退回单下发，由 AI 执行官先行补数再提交，仅无法自动补齐才升级人工。', effect: '同类「数据缺口型」失败将由 AI 闭环，减少约 70% 同类拍板。' } },
+  cost:     { kind: 'threshold', why: '单笔金额超出「大额成本审批」规则的自动放行阈值（¥50,000），按规则须管理层授权。', rule: { id: 'R-COST', name: '大额成本审批' },
+              fix: { kind: 'optimize', rule: '对「预算口径内 且 单价低于市场基准」的常规采购，放宽自动放行上限，仅留事后抽查。', effect: '合规常规采购免拍板，仅异常单价 / 超预算才升级人工。' } },
+  strategy: { kind: 'gap', why: '属新型战略相关性判断，规则库无对应规则可自动决策，须人工裁定后沉淀。', rule: { id: '—', name: '暂无对应规则' },
+              fix: { kind: 'create', rule: '沉淀「战略相关度 → 配额联动」规则：相关度达阈值即按既定档位自动调配，仅跨集挤占才升级人工。', effect: '同类战略联动由 AI 自动执行，无需逐次裁定。' } },
+  review:   { kind: 'exhausted', why: '自动拆解迭代已达上限仍未收敛到目标颗粒度，超出规则的自动迭代上限，须人工裁定。', rule: { id: 'R-DECOMP', name: '理想化状态自上而下拆解' },
+              fix: { kind: 'optimize', rule: '拆解规则增加「最小颗粒度」硬约束与自动迭代上限，超限即附颗粒度诊断升级，避免无效往返。', effect: '颗粒度不足被规则前置拦截并自动细化，减少往返。' } },
+  close:    { kind: 'mandate', why: '结项属高影响动作，「强制结项双重确认」规则强制保留人工签署，AI 不自动结项。', rule: { id: 'R-CLOSURE', name: '强制结项双重确认' },
+              fix: { kind: 'keep', rule: '结项双重确认为制度刻意保留的人工拍板点，不纳入自动化；AI 仅负责备齐材料与达成核验。', effect: '此类长期保留人工确认，但 AI 把材料准备做到「一键确认」。' } },
+  feedback: { kind: 'gap', why: '管理层主观疑问 / 反馈无规则可自动判定是否已闭环，须人工确认。', rule: { id: '—', name: '暂无对应规则' },
+              fix: { kind: 'create', rule: '将口径对照等高频反馈沉淀为知识，AI 自动附对照表回应并预标记可闭环，人工仅抽查。', effect: '同类反馈由 AI 自动澄清，人工抽查即可。' } },
+};
+const ivBoundary = (item) => item.boundary || IV_BOUNDARY[item.type] || IV_BOUNDARY.kapian;
+const ivFix = (item) => item.fix || (IV_BOUNDARY[item.type] || IV_BOUNDARY.kapian).fix;
 
 const INTERVENE_ITEMS = [
   { id: 'i1', type: 'kapian', sev: 'red', project: '区域运力预测引擎', pid: 'PRJ-2026-0151', urgency: '高', waited: '3h 12m',
@@ -95,6 +127,8 @@ const INTERVENE_ITEMS = [
     impactStats: [{ v: '1', unit: '条', k: '管理层反馈', deltaTone: 'neutral' }, { v: '已回应', k: 'AI 处理状态', deltaTone: 'success' }, { v: '6h 02m', k: '已等待确认' }],
     impactList: [{ text: '标记已处置后该反馈闭环，回写留痕', icon: 'message-square-text', tone: 'neutral' }, { text: '口径对照表沉淀为知识，供后续复用', icon: 'library', tone: 'blue' }] },
   { id: 'i8', type: 'kapian', sev: 'yellow', project: '供应商对账自动化', pid: 'PRJ-2026-0162', urgency: '低', waited: '12h 47m',
+    boundary: { kind: 'threshold', why: '对账规则命中率降至 91%，逼近关注阈值但尚未触发自动阻断，规则要求人工决定是否提前调优。', rule: { id: 'R-RISK-TREND', name: '风险分级趋势降权' },
+      fix: { kind: 'optimize', rule: '命中率进入「关注区间」时，由 AI 先自动执行规则调优补丁并观察一个对账周期，仅一周期内未回升才升级人工。', effect: '逼近阈值的下行先由 AI 自愈观察，减少过早打扰人工。' } },
     summary: '对账规则命中率下降至 91%，接近关注阈值。',
     ai: '暂未阻断，建议观察一个对账周期后再决策。',
     ctx: { goal: '阶段目标：对账自动化率 ≥ 95%', task: '事务 T-0566 · 规则调优', trail: '风险留痕 · 命中率下行' },
@@ -117,6 +151,8 @@ const INTERVENE_ITEMS = [
 ];
 
 const NEW_KAPIAN = { id: 'iNew', type: 'kapian', sev: 'red', project: '智能履约调度中台', pid: 'PRJ-2026-0137', urgency: '高', waited: '刚刚',
+  boundary: { kind: 'threshold', why: '调用超时率突增至 6.2%，突破实时阈值（5%），AI 已自动降级保护但根因超出自治范围，须人工核查。', rule: { id: 'R-RISK-TREND', name: '风险分级趋势降权' },
+    fix: { kind: 'optimize', rule: '将「超时率突增 + 已自动降级且未雪崩」归为观察级而非阻断级，给 AI 一个自愈观察窗口后再决定是否升级人工。', effect: '短时抖动不再立即打扰人工，仅持续恶化才升级。' } },
   summary: '新卡点：调度 AI 员工调用超时率突增至 6.2%，触发实时阈值。',
   ai: '建议立即转入项目现场核查算力与依赖服务状态。',
   ctx: { goal: '中短期目标：调度时效提升 30%', task: '事务 T-0299 · 实时调度', trail: '风险留痕 · 阈值告警（实时）' },
@@ -128,13 +164,20 @@ const NEW_KAPIAN = { id: 'iNew', type: 'kapian', sev: 'red', project: '智能履
   impactList: [{ text: '实时调度时效受影响，威胁中短期目标', icon: 'target', tone: 'danger' }, { text: '已自动降级，但根因（算力 / 依赖服务）待核查', icon: 'server', tone: 'warning' }],
   _new: true };
 
-/* ---------- 处置档案（只读档案体） ---------- */
+/* ---------- 处置档案（只读档案体） ----------
+   DisposalBody：与项目级 PivDisposalBody 同构，用 doc_kit 拼装出处置档案。
+   边界原因/关联规则通过 ivBoundary(item) 取得（可被 item 覆盖）。 */
 function DisposalBody({ item, onNavigate }) {
   const t = ITEM_TYPE[item.type];
+  const bd = ivBoundary(item);
+  const bk = IV_BK[bd.kind];
+  const fix = ivFix(item);
+  const fixLabel = { optimize: '优化规则', create: '沉淀新规则', keep: '制度保留' }[fix.kind];
   const metaItems = [
     { k: '事项类型', v: t.label },
     { k: '所属项目', v: item.project },
     { k: '项目编号', v: <span className="mono">{item.pid}</span> },
+    { k: '边界原因', v: <b style={{ color: bk.c }}>{bk.label}</b> },
     { k: '紧急度', v: <b style={{ color: item.urgency === '高' ? 'var(--danger)' : item.urgency === '中' ? 'var(--warning)' : 'var(--text-500)' }}>{item.urgency}</b> },
     { k: '已等待', v: <span className="mono">{item.waited}</span> },
     ...(item.amount ? [{ k: '涉及金额', v: <b style={{ color: 'var(--danger)' }} className="mono">{item.amount}</b> }] : []),
@@ -146,15 +189,26 @@ function DisposalBody({ item, onNavigate }) {
   ];
   return (
     <DocDoc>
-      <DocBanner tone={item.type === 'feedback' || item.type === 'close' ? 'success' : 'ai'} icon={item._new ? 'zap' : 'sparkles'}>
-        {item.type === 'feedback' || item.type === 'close'
-          ? 'AI 已自主处理至此并备齐材料，等待管理层做最终拍板。以下为完整处置档案。'
-          : 'AI 已就该事项完成可自动化的处置动作并给出建议，剩余决策需管理层拍板。以下为完整处置档案。'}
+      <DocBanner tone={item.type === 'close' ? 'success' : 'ai'} icon={item._new ? 'zap' : 'sparkles'}>
+        AI 已在规则内自主处理至此并备齐材料；该事项因「{bk.label}」超出自治边界，剩余决策须人工拍板。处置后请一并确认下方的系统级优化，让同类情形未来自动闭环。
       </DocBanner>
 
-      <DocSec no="01" title="事项概要" icon="file-badge"><DocMeta items={metaItems} /></DocSec>
+      <DocSec no="01" title="为何需要你 · 边界原因" icon="git-pull-request-arrow">
+        <div className="ivx-why-box" style={{ '--bk-c': bk.c, '--bk-bg': bk.bg }}>
+          <span className="ivx-why-tag" style={{ color: bk.c, background: bk.bg }}><Icon name={bk.icon} size={12} color={bk.c} />{bk.label}</span>
+          <p className="ivx-why-text">{bd.why}</p>
+          <div className="ivx-why-rule">
+            <Icon name="scale" size={12} color="var(--text-400)" />关联规则
+            {bd.rule.id && bd.rule.id !== '—'
+              ? <button className="ivx-rule-link" onClick={() => onNavigate && onNavigate('rules')}><span className="mono">{bd.rule.id}</span> · {bd.rule.name}<Icon name="arrow-up-right" size={11} color="var(--blue-primary)" /></button>
+              : <span style={{ color: 'var(--text-500)' }}>{bd.rule.name}</span>}
+          </div>
+        </div>
+      </DocSec>
 
-      <DocSec no="02" title={t.label + ' · 详情'} icon={t.icon}>
+      <DocSec no="02" title="事项概要" icon="file-badge"><DocMeta items={metaItems} /></DocSec>
+
+      <DocSec no="03" title={t.label + ' · 详情'} icon={t.icon}>
         <DocPara>{item.summary}</DocPara>
         <div style={{ marginTop: 12 }}><DocPeople rows={ctxPeople} /></div>
         {item.type === 'kapian' && onNavigate && (
@@ -170,30 +224,52 @@ function DisposalBody({ item, onNavigate }) {
       </DocSec>
 
       {item.aiDone && (
-        <DocSec no="03" title="AI 已做动作" icon="bot">
+        <DocSec no="04" title="AI 已做动作（规则内自治）" icon="bot">
           <DocChain items={item.aiDone.map(a => ({ ...a, ai: true }))} />
         </DocSec>
       )}
 
       {item.impactStats && (
-        <DocSec no="04" title="影响面" icon="radar">
+        <DocSec no="05" title="影响面" icon="radar">
           <DocStats items={item.impactStats} />
           {item.impactList && <div style={{ marginTop: 14 }}><DocList items={item.impactList} /></div>}
         </DocSec>
       )}
 
-      <DocSec no="05" title="处置方案 · AI 建议" icon="lightbulb">
+      <DocSec no="06" title="处置方案 · AI 建议" icon="lightbulb">
         <DocAINote>{item.ai}</DocAINote>
         <p className="t-micro" style={{ color: 'var(--text-400)', marginTop: 10 }}>
           <Icon name="info" size={12} color="var(--text-400)" style={{ verticalAlign: '-2px', marginRight: 4 }} />
           在下方选择处置动作；处置结果与理由将一并写入留痕。
         </p>
       </DocSec>
+
+      <DocSec no="07" title="根因与系统级优化 · 避免再次发生" icon="settings-2">
+        {fix.kind === 'keep' ? (
+          <div className="ivx-fix is-keep">
+            <div className="ivx-fix-head"><Icon name="shield-check" size={14} color="var(--text-500)" /><span>制度保留的人工确认点</span></div>
+            <p className="ivx-fix-rule">{fix.rule}</p>
+            <p className="ivx-fix-effect"><Icon name="info" size={12} color="var(--text-400)" />{fix.effect}</p>
+          </div>
+        ) : (
+          <div className="ivx-fix">
+            <div className="ivx-fix-head"><Icon name="sparkles" size={14} color="var(--ai)" /><span>AI 建议{fixLabel}，从底层消除此类边界</span></div>
+            <p className="ivx-fix-rule">「{fix.rule}」</p>
+            <p className="ivx-fix-effect"><Icon name="trending-down" size={12} color="var(--success)" />{fix.effect}</p>
+            <button className="ivx-fix-btn" onClick={() => onNavigate && onNavigate('rules')}>
+              <Icon name="git-commit-vertical" size={14} color="var(--blue-primary)" />
+              {fix.kind === 'create' ? '沉淀为新规则（送治理确认）' : '提交规则优化（送治理确认）'}
+              <Icon name="arrow-up-right" size={13} color="var(--blue-primary)" />
+            </button>
+          </div>
+        )}
+      </DocSec>
     </DocDoc>
   );
 }
 
-/* ---------- 处置动作（抽屉底部） ---------- */
+/* ---------- 处置动作（抽屉底部） ----------
+   DisposalActions：二步确认状态机（reason 动作需填理由后才 commit），同项目级。 */
 function DisposalActions({ item, onDispose }) {
   const [pending, setPending] = React.useState(null);
   const [reason, setReason] = React.useState('');
@@ -227,7 +303,8 @@ function DisposalActions({ item, onDispose }) {
   );
 }
 
-/* ---------- 项目集映射 + 总览 / 作用域头 ---------- */
+/* ---------- 项目集映射 + 总览 / 作用域头 ----------
+   ivItemPf：根据事项的 pid 查出其所属项目集（PROJECTS 查表）。 */
 function ivItemPf(item) {
   const p = (window.PROJECTS || []).find(pr => pr.pid === item.pid);
   return p ? p.portfolio : 'data';
@@ -301,7 +378,12 @@ function IvScopeHeader({ pf, count, onBack }) {
   );
 }
 
-/* ---------- 介入工作台主页面 ---------- */
+/* ---------- 介入工作台主页面 ----------
+   InterveneWorkbench：组合级主体。
+   状态：pf=null 显示项目集总览；'all' 或 某 portfolio id 进入作用域工作台。
+     filter 类型筛选；sort 排序；active 抽屉。scoped 按当前作用域过滤事项。
+   实时卡点：加载后 ~5s 从顶部脈冲滑入一条新卡点（NEW_KAPIAN）。
+   dispose：transfer 跳进项目现场；其余移除并弹 Toast（有 fix 提示「送治理确认」）。 */
 function InterveneWorkbench({ onNavigate, onEnterProject }) {
   const [loading, setLoading] = React.useState(true);
   const [items, setItems] = React.useState(INTERVENE_ITEMS);
@@ -345,7 +427,11 @@ function InterveneWorkbench({ onNavigate, onEnterProject }) {
     setItems(prev => prev.filter(i => i.id !== item.id));
     setActive(null);
     if (act.k === 'transfer') { onEnterProject && onEnterProject(); return; }
-    setToast({ msg: `已处置「${ITEM_TYPE[item.type].label}」· 已写入留痕`, action: '查看留痕', onAction: () => { setToast(null); onNavigate('rules'); } });
+    const fix = ivFix(item);
+    const hasFix = fix && fix.kind !== 'keep';
+    setToast(hasFix
+      ? { msg: `已处置「${ITEM_TYPE[item.type].label}」· 已生成规则${fix.kind === 'create' ? '沉淀' : '优化'}建议`, action: '送治理确认', onAction: () => { setToast(null); onNavigate('rules'); } }
+      : { msg: `已处置「${ITEM_TYPE[item.type].label}」· 已写入留痕`, action: '查看留痕', onAction: () => { setToast(null); onNavigate('rules'); } });
   };
 
   const filterList = [['all', '全部待处置', 'inbox'], ...Object.keys(ITEM_TYPE).map(k => [k, ITEM_TYPE[k].label, ITEM_TYPE[k].icon])];
@@ -361,8 +447,23 @@ function InterveneWorkbench({ onNavigate, onEnterProject }) {
           </div>
         </div>
         <div className="page-head-right">
-          <span className="t-micro" style={{ color: 'var(--text-400)' }}>待处置总数</span>
-          <span className="metric" style={{ fontSize: 22, color: 'var(--text-900)' }}>{loading ? '—' : items.length}</span>
+          <FeedbackEntry context={{ scene: '组合级 · 介入工作台', did: '正在审视组合内各项目的 AI 自治运行', ask: '运行偏差、规则盲区或希望优化的处置逻辑' }} onClick={() => {}} />
+        </div>
+      </div>
+
+      {/* 运行模型 · AI 自治流水线（组合级） */}
+      <div className="ivx-model">
+        <div className="ivx-model-l">
+          <span className="ivx-model-ico"><Icon name="workflow" size={20} color="var(--blue-primary)" /></span>
+          <div>
+            <div className="ivx-model-t"><span className="ivx-live"><span className="ivx-live-dot" />运行中</span>组合内各项目以 AI 自治流水线推进</div>
+            <div className="ivx-model-s">AI 在既定规则内自主决策与执行；仅「超出规则边界」的少数事项才上升到此处由管理层拍板。每次拍板都会沉淀 / 优化规则，让此队列持续趋近于零。</div>
+          </div>
+        </div>
+        <div className="ivx-model-stats">
+          <div className="ivx-stat"><span className="ivx-stat-v mono" style={{ color: 'var(--success)' }}>{loading ? '—' : '95.8%'}</span><span className="ivx-stat-k">近 7 日自治闭环率</span></div>
+          <div className="ivx-stat"><span className="ivx-stat-v mono">{loading ? '—' : '1,326'}</span><span className="ivx-stat-k">AI 自治处置（近 7 日）</span></div>
+          <div className="ivx-stat is-hot"><span className="ivx-stat-v mono" style={{ color: 'var(--warning)' }}>{loading ? '—' : items.length}</span><span className="ivx-stat-k">触达边界 · 待拍板</span></div>
         </div>
       </div>
 
@@ -415,12 +516,14 @@ function InterveneWorkbench({ onNavigate, onEnterProject }) {
             <div className="iv-list">
               {view.map(item => {
                 const t = ITEM_TYPE[item.type];
+                const bki = IV_BK[ivBoundary(item).kind];
                 const barColor = item.type === 'kapian' ? SEV_COLOR[item.sev] : `var(--${t.tone === 'neutral' ? 'border-300' : t.tone})`;
                 return (
                   <button key={item.id} className={`iv-card${item._new ? ' pulse-in' : ''}`} onClick={() => setActive(item)}>
-                    <span className="iv-card-bar" style={{ background: barColor }} />
+                    <span className="iv-card-bar" style={{ background: bki.c }} />
                     <div className="iv-card-main">
                       <div className="iv-card-top">
+                        <span className="ivx-bk" style={{ color: bki.c, background: bki.bg }}><Icon name={bki.icon} size={12} color={bki.c} />{bki.label}</span>
                         <span className="iv-proj">{item.project}</span>
                         <span className="mono iv-pid">{item.pid}</span>
                         <span className="iv-type-tag" style={{ color: barColor, background: item.type === 'kapian' ? (item.sev === 'red' ? 'var(--danger-bg)' : 'var(--warning-bg)') : `var(--${t.tone === 'neutral' ? 'neutral-bg' : t.tone + '-bg'})` }}>
@@ -429,7 +532,7 @@ function InterveneWorkbench({ onNavigate, onEnterProject }) {
                         {item._new && <span className="iv-new-tag">新</span>}
                         <span className="iv-waited mono"><Icon name="clock" size={13} color="var(--text-400)" />{item.waited}</span>
                       </div>
-                      <div className="iv-summary">{item.summary}</div>
+                      <div className="ivx-why-line"><Icon name="git-pull-request-arrow" size={13} color={bki.c} /><span className="ivx-why-label">为何需要你</span>{ivBoundary(item).why}</div>
                       <div className="iv-ai"><Icon name="sparkles" size={14} color="var(--ai)" /><span className="iv-ai-label">AI 建议</span>{item.ai}</div>
                     </div>
                     <span className="iv-urg" data-u={item.urgency}>{item.urgency}</span>

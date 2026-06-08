@@ -1,10 +1,13 @@
 /* ============================================================
    批 7 · 页面 7.2 · 强制结项（Danger 基调）
-   战略变化导致某方向不再做时被动触发：AI 自动发起、分析当前产出、生成结项报告与表单，
-   双重确认（管理层审批 + 项目负责人确认）。管理层可判断结项是否正确，判错填理由 → AI 学习。
+   ------------------------------------------------------------
+   作用：战略变化导致某方向不再做时被动触发：AI 自动发起、分析当前产出、
+         生成结项报告与表单，双重确认（管理层审批 + 项目负责人确认）。
+         管理层可判断结项是否正确，判错填理由 → AI 学习。
+   由 ClosurePage 的强制结项视图渲染（见 b7_knowledge.jsx）。数据：FC_PROJECT/FC_OUTPUTS（mock）。
    ============================================================ */
 
-/* 被强制结项的项目（由战略层第 4 条传导触发） */
+/* 被强制结项的项目（由战略层第 4 条传导触发）。 */
 const FC_PROJECT = { name: '智能外呼增长助手', pid: 'PRJ-2026-0151' };
 
 /* 当前产出分析（AI 自动分析该项目当前阶段全部产出） */
@@ -19,9 +22,12 @@ const FC_DISP = {
   keep: { icon: 'recycle' }, archive: { icon: 'archive' }, drop: { icon: 'circle-slash' },
 };
 
-/* ---------- 7.2 强制结项（内容体） ---------- */
+/* ---------- 7.2 强制结项（内容体） ----------
+   ForceClose：状态机 judge：pending 待判断 → confirmed 确认结项 /
+     reasoning 填保留理由 → learning AI 据理由学习。
+   呈现：触发链（战略→本项目）+ 产出去留分析 + 双重确认状态条 + 管理层判断。 */
 function ForceClose({ loading, onNavigate, onToast }) {
-  const [judge, setJudge] = React.useState('pending'); // pending | confirmed | reasoning | learning
+  const [judge, setJudge] = React.useState('pending'); // pending 待判断 | confirmed 已确认 | reasoning 填理由 | learning 学习中
   const [reason, setReason] = React.useState('');
   React.useEffect(() => { refreshIcons(); });
 

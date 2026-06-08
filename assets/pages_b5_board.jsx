@@ -1,9 +1,13 @@
 /* ============================================================
    批 5 · 执行层事务  —  数据 + 5.1 事务看板（状态机泳道 + 拖拽） + 外壳
-   承接批 0 设计系统与外壳；事务六要素 / 五类型 / 6699.com / 算力成本
+   ------------------------------------------------------------
+   作用：执行层事务的看板与外壳。事务按状态机分泳道，可拖拽改状态；
+         外壳在「事务看板 / 6699.com 派发 / 事务详情」三个视图间同源切换。
+   依赖：批 0 设计系统与外壳；事务六要素 / 五类型 / 6699.com / 算力成本。
+   数据：TASKS_W23 为 mock 事务；TaskDetail/Dispatch6699 在姊妹文件。
    ============================================================ */
 
-/* 五类型（色分 · 低饱和 oklch，区别于状态语义色） */
+/* 五类型（色分 · 低饱和 oklch，区别于状态语义色）。 */
 const TASK_TYPE = {
   design:   { label: '设计',     icon: 'pen-tool',     c: 'oklch(0.55 0.13 285)', bg: 'oklch(0.968 0.018 285)' },
   dev:      { label: '研发',     icon: 'code-xml',     c: 'oklch(0.52 0.12 250)', bg: 'oklch(0.966 0.018 250)' },
@@ -12,7 +16,8 @@ const TASK_TYPE = {
   other:    { label: '其他',     icon: 'shapes',       c: 'var(--text-500)',      bg: 'var(--neutral-bg)' },
 };
 
-/* 状态机（看板列严格对应） */
+/* 状态机（看板列严格对应）：草稿→待审→执行中→待验收→已完成，另有 延期/失败 两个异常态。
+   LANES 是看板的泳道顺序。 */
 const TASK_STATUS = {
   draft:   { label: '草稿',   c: 'var(--text-500)', bg: 'var(--neutral-bg)', rail: 'var(--text-400)', icon: 'pencil-line' },
   review:  { label: '待审',   c: 'var(--info)',     bg: 'var(--info-bg)',    rail: 'var(--info)',     icon: 'clipboard-list' },
@@ -24,7 +29,9 @@ const TASK_STATUS = {
 };
 const LANES = ['draft', 'review', 'running', 'accept', 'done', 'delayed', 'failed'];
 
-/* 事务数据（第 23 周 · 智能履约调度中台） */
+/* 事务数据（第 23 周 · 智能履约调度中台）。
+   每条事务携：type 类型 / status 状态 / ai 执行 Agent / dl 截止 / cost 算力成本；
+   部分携 six（事务六要素）/ output（产出与过程）/ accept（验收状态）。⚠ mock。 */
 const TASKS_W23 = [
   { id: 'T-0301', title: '调度结果可视化看板设计', type: 'design', status: 'draft', ai: '体验设计 Agent', dl: '06-08', cost: 0 },
   { id: 'T-0302', title: '异常告警文案规范', type: 'ops', status: 'draft', ai: '运营策略 Agent', dl: '06-09', cost: 0 },
@@ -102,15 +109,76 @@ const TASKS_W23 = [
 const TASK_MAP = {};
 TASKS_W23.forEach(t => { TASK_MAP[t.id] = t; });
 
-const WEEKS = [
-  { n: '第 22 周', d: '05-19 ~ 05-25' },
-  { n: '第 23 周', d: '06-02 ~ 06-08', cur: true },
-  { n: '第 24 周', d: '06-09 ~ 06-15' },
-];
+/* 版本驱动的周筛选 —— 周为主选项，前置依赖映射到：阶段目标版本 → 中短期目标版本。
+   buildWeekIndex：把 MID_VERSIONS 展平为 [{week, phase, mid}] 索引，供三级联动筛选反查。 */
+function buildWeekIndex() {
+  const out = [];
+  (window.MID_VERSIONS || []).forEach(mid => (mid.months || []).forEach(ph => (ph.weeks || []).forEach(w => out.push({ week: w, phase: ph, mid }))));
+  return out;
+}
+const CURRENT_WEEK = '2026年06月第1周';
+const shortWeek = (w) => (w || '').replace(/^\d{4}年/, '');
+
+/* VfDrop — 版本筛选下拉（前置依赖链共用）。open 控展开，primary 为主筛选样式。 */
+function VfDrop({ icon, kicker, label, sub, options, value, onChange, primary }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className={`tb-vf-drop${primary ? ' is-primary' : ''}`}>
+      <button className="tb-vf-btn" onClick={() => setOpen(o => !o)}>
+        {icon && <span className="tb-vf-ico"><Icon name={icon} size={15} color={primary ? 'var(--blue-primary)' : 'var(--text-500)'} /></span>}
+        <span className="tb-vf-col">
+          <span className="tb-vf-kicker">{kicker}</span>
+          <span className="tb-vf-val">{label}{sub && <span className="tb-vf-sub">{sub}</span>}</span>
+        </span>
+        <Icon name="chevron-down" size={13} color="var(--text-400)" />
+      </button>
+      {open && (
+        <div className="tb-vf-menu" onMouseLeave={() => setOpen(false)}>
+          <div className="tb-vf-menu-h">{kicker}</div>
+          {options.length ? options.map(o => (
+            <button key={o.id} className="tb-vf-item" data-on={o.id === value} onClick={() => { onChange(o.id); setOpen(false); }}>
+              <span className="tb-vf-item-l">{o.label}</span>
+              {o.sub && <span className="tb-vf-item-r">{o.sub}</span>}
+              {o.tag && <span className="tb-vf-item-tag">{o.tag}</span>}
+            </button>
+          )) : <div className="tb-vf-empty">该版本下暂无周计划</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* VersionWeekFilter — 前置依赖链：中短期目标版本 → 阶段目标版本 → 周（主选项）。
+   上级变化联动重置下级；选周后反查并同步上两级（见外壳的 onWeek）。 */
+function VersionWeekFilter({ midId, phaseId, weekKey, onMid, onPhase, onWeek }) {
+  const mids = window.MID_VERSIONS || [];
+  const mid = mids.find(m => m.id === midId) || mids[0] || {};
+  const phases = mid.months || [];
+  const phase = phases.find(p => p.id === phaseId) || phases[0] || {};
+  const weeks = phase.weeks || [];
+  return (
+    <div className="tb-vf">
+      <span className="tb-vf-dep">前置依赖</span>
+      <VfDrop icon="flag" kicker="中短期目标版本" label={`v${mid.id}`} sub={mid.q}
+        value={mid.id} onChange={onMid}
+        options={mids.map(m => ({ id: m.id, label: `v${m.id}`, sub: m.q, tag: m.current ? '当前' : undefined }))} />
+      <Icon name="chevron-right" size={15} color="var(--border-300)" />
+      <VfDrop icon="milestone" kicker="阶段目标版本" label={`v${phase.id || '—'}`} sub={phase.label || ''}
+        value={phase.id} onChange={onPhase}
+        options={phases.map(p => ({ id: p.id, label: `v${p.id}`, sub: p.label }))} />
+      <Icon name="chevron-right" size={15} color="var(--border-300)" />
+      <VfDrop icon="calendar-range" kicker="周计划 · 主筛选" primary label={weekKey ? shortWeek(weekKey) : '暂无周计划'}
+        value={weekKey} onChange={onWeek}
+        options={weeks.map(w => ({ id: w, label: shortWeek(w), tag: w === CURRENT_WEEK ? '当前周' : undefined }))} />
+    </div>
+  );
+}
 
 const fmtCost = (n) => n === 0 ? '—' : '¥' + n.toLocaleString('en-US');
 
-/* ---------- 事务卡 ---------- */
+/* ---------- 事务卡 ----------
+   TaskCard：看板中的单个事务卡。floating 拖拽漂浮体 / isPlaceholder 被拖走的占位 /
+     isPulse 落位后脉冲高亮。onPointerDown 由看板传入启动拖拽/点击判定。 */
 function TaskCard({ task, floating, isPlaceholder, isPulse, onPointerDown }) {
   const ty = TASK_TYPE[task.type];
   const st = TASK_STATUS[task.status];
@@ -148,7 +216,11 @@ function TaskCard({ task, floating, isPlaceholder, isPulse, onPointerDown }) {
   );
 }
 
-/* ---------- 泳道看板（指针拖拽） ---------- */
+/* ---------- 泳道看板（指针拖拽） ----------
+   TaskBoard：按 LANES 渲染状态泳道。核心交互是 startDrag 的「点击 vs 拖拽」区分：
+     指针按下后，位移 < 6px 视为点击（onOpen 开详情）；超过则进入拖拽（生成漂浮体，
+     实时命中泳道 over）；松手时若落在不同泳道则 onMove(id, 新状态) 并脉冲高亮。
+     readOnly 时禁用拖拽（仅点击）。 */
 function TaskBoard({ tasks, onMove, onOpen, readOnly }) {
   const [drag, setDrag] = React.useState(null);
   const [over, setOver] = React.useState(null);
@@ -232,20 +304,28 @@ function TaskBoard({ tasks, onMove, onOpen, readOnly }) {
   );
 }
 
-/* ---------- 执行层事务 · 外壳（看板 / 派发 / 详情 同源切换） ---------- */
+/* ---------- 执行层事务 · 外壳（看板 / 派发 / 详情 同源切换） ----------
+   ExecutionTasks：状态 view 三视图；tasks 事务列表；selId 选中事务；
+     midId/phaseId/weekKey 三级版本筛选（onMid/onPhase/onWeek 联动）。
+   move：拖拽改状态并写留痕；openTask：点卡进详情视图。仅「当前周」显真看板，其余周为示意空态。 */
 function ExecutionTasks({ project, onNavigate }) {
   const [loading, setLoading] = React.useState(true);
-  const [view, setView] = React.useState('board');   // board | dispatch | detail
+  const [view, setView] = React.useState('board');   // board 看板 | dispatch 6699 派发 | detail 详情
   const [tasks, setTasks] = React.useState(TASKS_W23);
   const [selId, setSelId] = React.useState(null);
-  const [weekIdx, setWeekIdx] = React.useState(1);
+  const initEntry = React.useMemo(() => buildWeekIndex().find(e => e.week === CURRENT_WEEK) || buildWeekIndex()[0] || {}, []);
+  const [midId, setMidId] = React.useState(initEntry.mid ? initEntry.mid.id : '1.0');
+  const [phaseId, setPhaseId] = React.useState(initEntry.phase ? initEntry.phase.id : '1.2');
+  const [weekKey, setWeekKey] = React.useState(CURRENT_WEEK);
   const [toast, setToast] = React.useState(null);
   const p = window.PROJECT_META || { name: '智能履约调度中台', pid: 'PRJ-2026-0137' };
 
   React.useEffect(() => { const t = setTimeout(() => setLoading(false), 900); return () => clearTimeout(t); }, []);
 
-  const week = WEEKS[weekIdx];
-  const isCur = !!week.cur;
+  const onMid = (id) => { const m = (window.MID_VERSIONS || []).find(v => v.id === id); const ph = (m && m.months || [])[0]; setMidId(id); setPhaseId(ph ? ph.id : null); setWeekKey(ph && ph.weeks[0] || ''); };
+  const onPhase = (id) => { const ph = window.MONTH_OF(id); setPhaseId(id); setWeekKey(ph && ph.weeks[0] || ''); };
+  const onWeek = (w) => { setWeekKey(w); const e = buildWeekIndex().find(x => x.week === w); if (e) { setMidId(e.mid.id); setPhaseId(e.phase.id); } };
+  const isCur = weekKey === CURRENT_WEEK;
 
   const move = (id, status) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
@@ -288,11 +368,7 @@ function ExecutionTasks({ project, onNavigate }) {
         </div>
         <div className="page-head-right">
           {view === 'board' && (
-            <div className="tb-week">
-              <button className="tb-week-arw" onClick={() => setWeekIdx(i => Math.max(0, i - 1))} disabled={weekIdx === 0} aria-label="上一周"><Icon name="chevron-left" size={16} color="var(--text-500)" /></button>
-              <span className="tb-week-lbl"><span className="tb-week-n">{week.n}</span><span className="tb-week-d mono">{week.d}</span></span>
-              <button className="tb-week-arw" onClick={() => setWeekIdx(i => Math.min(WEEKS.length - 1, i + 1))} disabled={weekIdx === WEEKS.length - 1} aria-label="下一周"><Icon name="chevron-right" size={16} color="var(--text-500)" /></button>
-            </div>
+            <VersionWeekFilter midId={midId} phaseId={phaseId} weekKey={weekKey} onMid={onMid} onPhase={onPhase} onWeek={onWeek} />
           )}
           <div className="tb-switch">
             <button className="tb-switch-btn" data-on={view === 'board'} onClick={() => setView('board')}><Icon name="kanban" size={15} color={view === 'board' ? 'var(--text-900)' : 'var(--text-500)'} />事务看板</button>
@@ -341,7 +417,7 @@ function ExecutionTasks({ project, onNavigate }) {
             </div>
           ) : !isCur ? (
             <Card style={{ marginTop: 4 }}>
-              <EmptyState glyph="calendar-range" title={`${week.n}事务视图为示意`} desc="当前演示聚焦第 23 周（当前周）的执行事务。其它周的看板将随真实数据接入后填充。" action={<Button variant="primary" icon="corner-up-left" onClick={() => setWeekIdx(1)}>回到当前周</Button>} />
+              <EmptyState glyph="calendar-range" title={weekKey ? `${shortWeek(weekKey)}事务视图为示意` : '该阶段版本暂无周计划'} desc={weekKey ? '当前演示聚焦「2026年06月第1周」（当前周）的执行事务。其它周的看板将随真实数据接入后填充。' : '所选阶段目标版本下尚未拆分出周计划，请切换到含周计划的版本。'} action={<Button variant="primary" icon="corner-up-left" onClick={() => onWeek(CURRENT_WEEK)}>回到当前周</Button>} />
             </Card>
           ) : (
             <TaskBoard tasks={tasks} onMove={move} onOpen={openTask} />

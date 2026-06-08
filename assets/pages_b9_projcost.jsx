@@ -1,11 +1,12 @@
 /* ============================================================
    批 9 · 页面 9.2 · 项目费用看板（项目专属）
-   单个项目实时统计、记录已消耗算力成本总金额。
-   累计成本大卡（Metric-XL + 数字滚动）+ 运行次数 + 成本趋势折线
-   + 按事务成本明细表（关联事务，点行 → 跳事务详情 批 5）。
+   ------------------------------------------------------------
+   作用：单个项目实时统计、记录已消耗算力成本总金额。
+         累计成本大卡 + 运行次数 + 成本趋势折线 + 按事务成本明细表（点行 → 跳事务详情 批 5）。
+   依赖：复用 b9_costboard.jsx 的 DualLineChart / CB_WEEK_LABELS。⚠ 数据为 mock。
    ============================================================ */
 
-/* 本项目按事务的算力成本明细（关联批 5 执行事务） */
+/* 本项目按事务的算力成本明细（关联批 5 执行事务）。 */
 const PC_TASK_COSTS = [
   { id: 'T-0291', name: '接入区域运力实时数据源', type: '数据接入', cost: 86400, runs: 52680, status: 'done' },
   { id: 'T-0312', name: '调度算力扩容与压测', type: '算力', cost: 64200, runs: 39150, status: 'done' },
@@ -23,15 +24,26 @@ const PC_RUN_TREND  = [9,11,10,13,15,14,17,19,18,21,23,20,24,26,24,28];
 
 const PC_TYPE_TONE = { 数据接入: 'var(--info)', 算力: 'var(--ai)', 规划: 'var(--blue-primary)', 执行: 'var(--success)', 验收: 'var(--success)', 治理: 'var(--text-500)' };
 
+/* ProjectCostBoard — 项目费用看板主体。
+   状态：range 时间范围 / split 按事务或按时间拆分 / sort 排序。
+   rows 按 PC_TASK_COSTS 排序；点事务行 onNavigate('p-task') 跳执行事务详情。 */
 function ProjectCostBoard({ project, onNavigate }) {
   const p = project || { name: '智能履约调度中台', pid: 'PRJ-2026-0137' };
+  const TODAY = '2026-06-03';
   const [loading, setLoading] = React.useState(true);
-  const [range, setRange] = React.useState('all');
+  const [range, setRange] = React.useState('today');
+  const [rangeOpen, setRangeOpen] = React.useState(false);
+  const [cStart, setCStart] = React.useState(TODAY);
+  const [cEnd, setCEnd] = React.useState(TODAY);
   const [split, setSplit] = React.useState('task'); // task | time
   const [sort, setSort] = React.useState('cost');
   const [toast, setToast] = React.useState(null);
   React.useEffect(() => { const t = setTimeout(() => setLoading(false), 650); return () => clearTimeout(t); }, []);
   React.useEffect(() => { refreshIcons(); });
+
+  const PRESET_LABEL = { today: '今日', '7d': '近 7 天', '30d': '近 30 天', '90d': '近 90 天' };
+  const customDays = Math.max(1, Math.round((new Date(cEnd) - new Date(cStart)) / 86400000) + 1);
+  const periodLabel = range === 'custom' ? (cStart === cEnd ? cStart : `${cStart} ~ ${cEnd}`) : PRESET_LABEL[range];
 
   const totalCost = PC_TASK_COSTS.reduce((s, t) => s + t.cost, 0);
   const totalRuns = PC_TASK_COSTS.reduce((s, t) => s + t.runs, 0);
@@ -49,10 +61,34 @@ function ProjectCostBoard({ project, onNavigate }) {
           </div>
         </div>
         <div className="page-head-right">
-          <div className="cb-range">
-            {[['all','累计'],['30d','近 30 天'],['7d','近 7 天']].map(([id, lb]) => (
-              <button key={id} className="cb-range-btn" data-on={range === id} onClick={() => setRange(id)}>{lb}</button>
-            ))}
+          <div className="cb-rp">
+            <button className="cb-rp-btn" data-on={rangeOpen || range === 'custom'} onClick={() => setRangeOpen(o => !o)}>
+              <Icon name="calendar-range" size={15} color="var(--text-500)" />
+              <span className="cb-rp-label">{periodLabel}</span>
+              <Icon name="chevron-down" size={14} color="var(--text-400)" />
+            </button>
+            {rangeOpen && (
+              <>
+                <div className="cb-pf-backdrop" onClick={() => setRangeOpen(false)} />
+                <div className="cb-rp-menu">
+                  <div className="cb-rp-sec">快捷范围</div>
+                  <div className="cb-rp-presets">
+                    {[['today','今天'],['7d','近 7 天'],['30d','近 30 天'],['90d','近 90 天']].map(([id, lb]) => (
+                      <button key={id} className="cb-rp-preset" data-on={range === id} onClick={() => { setRange(id); setRangeOpen(false); }}>{lb}</button>
+                    ))}
+                  </div>
+                  <div className="cb-rp-sec">自定义时间范围</div>
+                  <div className="cb-rp-custom">
+                    <label className="cb-rp-field"><span>开始</span><input type="date" value={cStart} max={cEnd} onChange={e => setCStart(e.target.value)} /></label>
+                    <label className="cb-rp-field"><span>结束</span><input type="date" value={cEnd} min={cStart} max={TODAY} onChange={e => setCEnd(e.target.value)} /></label>
+                  </div>
+                  <div className="cb-rp-foot">
+                    <span className="cb-rp-days">共 <span className="mono">{customDays}</span> 天</span>
+                    <button className="cb-rp-apply" onClick={() => { setRange('custom'); setRangeOpen(false); }}>应用</button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <FeedbackEntry onClick={() => setToast({ msg: '异步反馈入口已打开（演示）' })} />
         </div>

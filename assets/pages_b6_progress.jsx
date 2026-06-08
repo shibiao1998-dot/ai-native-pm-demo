@@ -1,22 +1,25 @@
 /* ============================================================
    批 6 · 页面 6.2 · 进度推进度（永久记录）
-   每级验收通过沉淀「下级对上级目标推进了多少」，作为永久进度、供下次拆解参考；
-   合成理想化状态推进度（长周期趋势）。
+   ------------------------------------------------------------
+   作用：每级验收通过沉淀「下级对上级目标推进了多少」，作为永久进度、供下次拆解参考；
+         合成理想化状态推进度（长周期趋势）。由 AcceptanceLoop 的 progress 视图渲染。
+   数据：PA_TREND/PA_CHAIN/PA_BARS/PA_PERM 均为 mock。
    ============================================================ */
 
-/* 长周期推进趋势（第 12 ~ 23 周，向理想化状态合成） */
+/* 长周期推进趋势（第 12 ~ 23 周，向理想化状态合成）。 */
 const PA_TREND = [
-  { wk: '12w', v: 10 }, { wk: '13w', v: 16 }, { wk: '14w', v: 16 }, { wk: '15w', v: 24 },
-  { wk: '16w', v: 28 }, { wk: '17w', v: 30 }, { wk: '18w', v: 38 }, { wk: '19w', v: 40 },
-  { wk: '20w', v: 46 }, { wk: '21w', v: 55 }, { wk: '22w', v: 67 }, { wk: '23w', v: 72 },
+  { wk: '3月', v: 10 }, { wk: '', v: 16 }, { wk: '', v: 16 }, { wk: '', v: 24 },
+  { wk: '4月', v: 28 }, { wk: '', v: 30 }, { wk: '', v: 38 }, { wk: '', v: 40 },
+  { wk: '5月', v: 46 }, { wk: '', v: 55 }, { wk: '', v: 67 }, { wk: '6月', v: 72 },
 ];
 /* 阶段验收通过里程碑（坐标按 index） */
 const PA_MILES = [
-  { i: 5, label: '阶段：算法灰度达标' },
-  { i: 9, label: '阶段：异常自愈率 ≥ 90%' },
+  { i: 5, label: '周 · 调度算法灰度达标' },
+  { i: 9, label: '阶段 v1.1 · 异常自愈率 ≥ 90%' },
 ];
 
-/* 理想化状态推进度大图 */
+/* ProgressChart — 理想化状态推进度大图。手绘 SVG 折线 + 面积 + 计划虚线 + 里程碑点；
+   draw 状态控入场动画（描边生长 + 面积渐显）。 */
 function ProgressChart() {
   const W = 800, H = 236, padL = 30, padR = 14, padT = 16, padB = 26;
   const n = PA_TREND.length;
@@ -65,51 +68,51 @@ function ProgressChart() {
 
 /* 推进度链段 */
 const PA_CHAIN = [
-  { id: 'w2p', route: '周版本 → 阶段目标', pct: 64, rem: '路况源就位、管道时延', color: 'var(--warning)',
+  { id: 'w2p', route: '周目标 → 阶段目标 v1.2', pct: 64, rem: '路况源就位、管道时延', color: 'var(--warning)',
     records: [
-      { t: '第 22 周 · 调度算法灰度上线', g: 'B', date: '05-30', delta: '+12%' },
-      { t: '第 21 周 · 异常检测模型迭代', g: 'A', date: '05-24', delta: '+9%' },
+      { t: '2026年05月第5周 · 调度算法灰度上线', g: 'B', date: '05-30', delta: '+12%' },
+      { t: '2026年05月第4周 · 异常检测模型迭代', g: 'A', date: '05-24', delta: '+9%' },
     ] },
-  { id: 'p2m', route: '阶段目标 → 中短期目标', pct: 71, rem: '履约时效阶段未达成', color: 'var(--warning)',
+  { id: 'p2m', route: '阶段目标 → 中短期目标 v1.0', pct: 71, rem: '履约时效阶段未达成', color: 'var(--warning)',
     records: [
-      { t: '阶段 · 异常自愈率 ≥ 90%', g: 'B', date: '05-27', delta: '+18%' },
-      { t: '阶段 · 履约时效 < 4h（未通过）', g: 'D', date: '06-01', delta: '+0%' },
+      { t: '阶段 v1.1 · 异常自愈率 ≥ 90%', g: 'B', date: '05-27', delta: '+18%' },
+      { t: '阶段 v1.2 · 履约时效 < 4h（未通过）', g: 'D', date: '06-01', delta: '+0%' },
     ] },
-  { id: 'm2i', route: '中短期 → 理想化状态', pct: 58, rem: '成本下降中短期验收中', color: 'var(--blue-primary)',
+  { id: 'm2i', route: '中短期目标 v1.0 → 理想化状态', pct: 58, rem: '成本下降中短期验收中', color: 'var(--blue-primary)',
     records: [
-      { t: '中短期 · 调度时效提升 30%', g: 'C', date: '06-01', delta: '+24% / 30%' },
-      { t: '中短期 · 单均成本下降 15%', g: 'R', date: '验收中', delta: '—' },
+      { t: '中短期 v1.0 · 调度时效提升 30%', g: 'C', date: '06-01', delta: '+24% / 30%' },
+      { t: '中短期 v1.0 · 单均成本下降 15%', g: 'R', date: '验收中', delta: '—' },
     ] },
 ];
 
 /* 逐级推进度条 */
 const PA_BARS = [
-  { name: '异常调度自愈率 ≥ 90%', lv: '阶段目标 · 已验收', pct: 100, done: true, rem: 0, acc: '05-27 验收通过' },
-  { name: '履约时效 < 4h', lv: '阶段目标 · 卡点', pct: 64, done: false, rem: 3, acc: '06-01 未通过' },
-  { name: '算力成本优化', lv: '阶段目标 · 验收中', pct: 30, done: false, rem: 2, acc: '尚未到验收节点' },
-  { name: '调度时效提升 30%（中短期）', lv: '中短期目标', pct: 58, done: false, rem: 3, acc: '06-01 部分达成' },
+  { name: '异常调度自愈率 ≥ 90%', lv: '阶段目标 v1.1 · 已验收闭环', pct: 100, done: true, rem: 0, acc: '05-27 验收通过' },
+  { name: '履约时效 < 4h', lv: '阶段目标 v1.2 · 卡点', pct: 64, done: false, rem: 3, acc: '06-01 未通过' },
+  { name: '算力成本优化', lv: '阶段目标 v1.2 · 验收中', pct: 30, done: false, rem: 2, acc: '尚未到验收节点' },
+  { name: '调度时效提升 30%', lv: '中短期目标 v1.0', pct: 58, done: false, rem: 3, acc: '06-01 部分达成' },
 ];
 
 /* 剩余项列表 */
 const PA_REMAIN = [
-  { t: '实时路况数据源选型与合规采购', from: '第 23 周 · 接入区域实时路况', tag: '滚动至下周', tone: 'warning' },
-  { t: '第三方运力 API 联通（已失败 · 建议换源重拆）', from: '第 22 周遗留', tag: '重新拆解', tone: 'danger' },
-  { t: '推理资源弹性调度上线', from: '第 24 周 · 待执行', tag: '本周排期', tone: 'info' },
+  { t: '实时路况数据源选型与合规采购', from: '2026年06月第1周 · 接入区域实时路况', tag: '滚动至下周', tone: 'warning' },
+  { t: '第三方运力 API 联通（已失败 · 建议换源）', from: '2026年05月第5周 遗留', tag: '换源重试', tone: 'danger' },
+  { t: '推理资源弹性调度上线', from: '2026年06月第2周 · 待执行', tag: '本周排期', tone: 'info' },
 ];
 
 /* 永久记录时间线（验收通过沉淀，不可篡改） */
 const PA_PERM = [
-  { date: '06-01', m: '中短期', title: '调度时效提升 30% · 季度汇聚', delta: '+24%', blue: true,
-    desc: '阶段「履约时效」未通过、「异常自愈」通过，中短期部分达成，沉淀为永久进度并触发根基复盘。' },
-  { date: '05-30', m: '第 22 周', title: '调度算法灰度上线 · 周版本验收通过', delta: '+12%', blue: false,
-    desc: '灰度策略与监控面板交付，推动「履约时效」阶段目标推进，剩余项滚动至下一周。' },
-  { date: '05-27', m: '阶段', title: '异常自愈率 ≥ 90% · 阶段验收通过', delta: '+18%', blue: true,
-    desc: '自愈率实测 91.4%，阶段目标达成，向中短期「时效提升」合成推进。' },
-  { date: '05-24', m: '第 21 周', title: '异常检测模型迭代 · 周版本验收通过', delta: '+9%', blue: false,
-    desc: '特征工程优化，模型召回与误报达标，沉淀为永久进度记录。' },
+  { date: '06-01', m: '中短期 v1.0', title: '调度时效提升 30% · 验收闭环', delta: '+24%', blue: true,
+    desc: '阶段「履约时效」未通过、「异常自愈」通过，中短期目标部分达成。' },
+  { date: '05-30', m: '2026年05月第5周', title: '调度算法灰度上线 · 验收通过', delta: '+12%', blue: false,
+    desc: '灰度策略与监控面板交付，推动阶段目标「履约时效」推进，剩余项滚动至下一周。' },
+  { date: '05-27', m: '阶段 v1.1', title: '异常自愈率 ≥ 90% · 验收闭环', delta: '+18%', blue: true,
+    desc: '自愈率实测 91.4%，阶段目标达成，向中短期「时效提升」推进。' },
+  { date: '05-24', m: '2026年05月第4周', title: '异常检测模型迭代 · 验收通过', delta: '+9%', blue: false,
+    desc: '特征工程优化，模型召回与误报达标。' },
 ];
 
-/* 推进度构成抽屉 */
+/* ChainDrawer — 推进度构成抽屉：点推进度链某段，展示沉淀该推进度的各条验收记录。 */
 function ChainDrawer({ seg, onClose }) {
   return (
     <Drawer open={!!seg} onClose={onClose} width={460}
@@ -145,7 +148,8 @@ function ChainDrawer({ seg, onClose }) {
   );
 }
 
-/* ---------- 6.2 进度推进度（内容体） ---------- */
+/* ---------- 6.2 进度推进度（内容体） ----------
+   ProgressAdvance：大图 + 推进度链（点段开 ChainDrawer）+ 逐级进度条 + 剩余项 + 永久记录时间线。 */
 function ProgressAdvance({ loading, onNavigate, onToast }) {
   const [seg, setSeg] = React.useState(null);
   React.useEffect(() => { refreshIcons(); });
@@ -166,8 +170,8 @@ function ProgressAdvance({ loading, onNavigate, onToast }) {
         <div className="pa-hero-head">
           <span className="pa-hero-ico"><Icon name="target" size={22} color="var(--blue-primary)" /></span>
           <div className="pa-hero-titles">
-            <div className="pa-hero-t">理想化状态推进度 · 长周期合成</div>
-            <div className="pa-hero-s">由各级验收通过的永久进度逐层合成，衡量项目向「履约调度全面智能化、时效与成本双优」终态的长周期推进。</div>
+            <div className="pa-hero-t">理想化状态推进度</div>
+            <div className="pa-hero-s">项目向终态「履约调度全面智能化、时效与成本双优」的整体推进度，由各级目标的验收结果汇总而来。</div>
           </div>
           <div className="pa-hero-big">
             <div className="pa-hero-pct">58<span style={{ fontSize: 22 }}>%</span></div>
@@ -176,7 +180,7 @@ function ProgressAdvance({ loading, onNavigate, onToast }) {
         </div>
         <ProgressChart />
         <div className="pa-chart-legend">
-          <span className="pa-leg"><span className="pa-leg-line" style={{ background: 'var(--blue-primary)' }} />实际推进度（永久记录合成）</span>
+          <span className="pa-leg"><span className="pa-leg-line" style={{ background: 'var(--blue-primary)' }} />实际推进度</span>
           <span className="pa-leg"><span className="pa-leg-dash" />理想化目标节奏</span>
           <span className="pa-leg"><span className="pa-leg-dot" style={{ background: '#fff', boxShadow: '0 0 0 2px var(--success)' }} />阶段验收通过里程碑</span>
         </div>
@@ -186,10 +190,9 @@ function ProgressAdvance({ loading, onNavigate, onToast }) {
       <div className="pa-chain">
         <div className="pa-sec-head">
           <Icon name="link-2" size={17} color="var(--blue-primary)" />
-          <span className="t">推进度链 · 逐级合成</span>
+          <span className="t">推进度链 · 逐级推进</span>
           <span className="s">点任一段查看构成它的验收记录</span>
         </div>
-        <div className="pa-sec-desc">下级目标验收通过后，对上级目标产生「推进量」；逐段向上合成，最终汇成理想化状态推进度。</div>
         <div className="pa-chain-flow">
           {PA_CHAIN.map((s, i) => (
             <React.Fragment key={s.id}>
@@ -248,30 +251,27 @@ function ProgressAdvance({ loading, onNavigate, onToast }) {
               </div>
             ))}
           </div>
-          <div className="pa-grain">
-            <Icon name="ruler" size={17} color="var(--blue-primary)" />
-            <span className="t">下一次拆解须参考已完成进度与剩余项，对齐颗粒度，避免重复或遗漏。</span>
-          </div>
         </div>
       </div>
 
       {/* 永久记录时间线 */}
       <div className="pa-perm">
         <div className="pa-sec-head">
-          <Icon name="archive" size={17} color="var(--blue-primary)" />
-          <span className="t">永久进度记录</span>
-          <span className="s">每级验收通过即沉淀，慢节奏、不可篡改</span>
+          <Icon name="circle-check-big" size={17} color="var(--blue-primary)" />
+          <span className="t">验收闭环记录</span>
+          <span className="s">每级目标验收通过后的闭环结果</span>
         </div>
         <div className="pa-timeline">
           {PA_PERM.map((p, i) => (
             <div className="pa-tl-item" key={i}>
-              <div className="pa-tl-date"><div className="d mono">{p.date}</div><div className="m">{p.m}</div></div>
+              <div className="pa-tl-date"><div className="d mono">{p.date}</div></div>
               <span className={`pa-tl-node${p.blue ? ' blue' : ''}`} />
               <div className="pa-tl-card">
                 <div className="pa-tl-card-top">
+                  <span className="pa-tl-ver">{p.m}</span>
                   <span className="pa-tl-title">{p.title}</span>
                   <span className="pa-tl-delta">{p.delta}</span>
-                  <span className="pa-tl-lock"><Icon name="lock" size={11} color="var(--success)" />永久记录</span>
+                  <span className="pa-tl-lock"><Icon name="circle-check" size={11} color="var(--success)" />已闭环</span>
                 </div>
                 <div className="pa-tl-desc">{p.desc}</div>
               </div>
